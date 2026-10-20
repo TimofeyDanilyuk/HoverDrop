@@ -16,6 +16,8 @@ namespace HoverDrop.App.Utils
         public static TriggerModifier TriggerKey { get; set; } = TriggerModifier.Alt;
         public static bool StartWithWindows { get; set; }
         public static bool PlaySound { get; set; } = true;
+        public static double MenuScale { get; set; } = 1.0;
+        public static bool ConfirmDelete { get; set; } = true;
 
         private static readonly string FilePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HoverDrop", "settings.json");
@@ -30,8 +32,10 @@ namespace HoverDrop.App.Utils
         {
             public ThemeMode Theme { get; set; } = ThemeMode.System;
             public TriggerModifier TriggerKey { get; set; } = TriggerModifier.Alt;
+            public bool ConfirmDelete { get; set; } = true;
             public bool StartWithWindows { get; set; }
             public bool PlaySound { get; set; } = true;
+            public double MenuScale { get; set; } = 1.0;
         }
 
         public static void Load()
@@ -46,6 +50,8 @@ namespace HoverDrop.App.Utils
                 TriggerKey = data.TriggerKey;
                 StartWithWindows = data.StartWithWindows;
                 PlaySound = data.PlaySound;
+                MenuScale = Math.Clamp(data.MenuScale, 0.7, 1.5);
+                ConfirmDelete = data.ConfirmDelete;
             }
             catch
             {
@@ -63,7 +69,9 @@ namespace HoverDrop.App.Utils
                     Theme = Theme,
                     TriggerKey = TriggerKey,
                     StartWithWindows = StartWithWindows,
-                    PlaySound = PlaySound
+                    PlaySound = PlaySound,
+                    ConfirmDelete = ConfirmDelete,
+                    MenuScale = MenuScale
                 };
                 File.WriteAllText(FilePath, JsonSerializer.Serialize(data, Options));
             }

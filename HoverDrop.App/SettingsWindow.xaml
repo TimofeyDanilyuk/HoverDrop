@@ -40,95 +40,138 @@
 
         <ui:TitleBar Grid.Row="0" Title="HoverDrop"/>
 
-        <StackPanel Grid.Row="1" Margin="24,8,24,24">
-            <TextBlock Text="Настройки" FontSize="26" FontWeight="Bold" Margin="0,0,0,16"/>
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Grid.Row="1" Margin="24,8,24,24">
+                <TextBlock Text="Настройки" FontSize="26" FontWeight="Bold" Margin="0,0,0,16"/>
 
-            <!-- Тема -->
-            <Border Style="{StaticResource Card}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon Grid.Column="0" Symbol="WeatherMoon24" FontSize="22" Margin="0,0,14,0"/>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="Тема оформления" Style="{StaticResource CardTitle}"/>
-                        <TextBlock Text="Влияет на это окно и на цвет «стекла» в меню" Style="{StaticResource CardHint}"/>
-                    </StackPanel>
-                    <ComboBox Grid.Column="2" MinWidth="150" VerticalAlignment="Center"
-                              SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}">
-                        <ComboBoxItem Content="Как в системе"/>
-                        <ComboBoxItem Content="Светлая"/>
-                        <ComboBoxItem Content="Тёмная"/>
-                    </ComboBox>
-                </Grid>
-            </Border>
+                <!-- Тема -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Grid.Column="0" Symbol="WeatherMoon24" FontSize="22" Margin="0,0,14,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Тема оформления" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="Влияет на это окно и на цвет «стекла» в меню" Style="{StaticResource CardHint}"/>
+                        </StackPanel>
+                        <ComboBox Grid.Column="2" MinWidth="150" VerticalAlignment="Center"
+                                SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}">
+                            <ComboBoxItem Content="Как в системе"/>
+                            <ComboBoxItem Content="Светлая"/>
+                            <ComboBoxItem Content="Тёмная"/>
+                        </ComboBox>
+                    </Grid>
+                </Border>
 
-            <!-- Горячая клавиша -->
-            <Border Style="{StaticResource Card}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon Grid.Column="0" Symbol="Keyboard24" FontSize="22" Margin="0,0,14,0"/>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                        <TextBlock Text="Горячая клавиша" Style="{StaticResource CardTitle}"/>
-                        <TextBlock Text="Удерживай её при перетаскивании файла, чтобы открыть меню. Ctrl и Shift меняют поведение проводника при перетаскивании, Alt мешает меньше всего."
-                                   Style="{StaticResource CardHint}"/>
-                    </StackPanel>
-                    <ComboBox Grid.Column="2" MinWidth="150" VerticalAlignment="Center"
-                              SelectedIndex="{Binding TriggerIndex, Mode=TwoWay}">
-                        <ComboBoxItem Content="Alt"/>
-                        <ComboBoxItem Content="Ctrl"/>
-                        <ComboBoxItem Content="Shift"/>
-                    </ComboBox>
-                </Grid>
-            </Border>
+                <!-- Горячая клавиша -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Grid.Column="0" Symbol="Keyboard24" FontSize="22" Margin="0,0,14,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="Горячая клавиша" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="Удерживай её при перетаскивании файла, чтобы открыть меню. Ctrl и Shift меняют поведение проводника при перетаскивании, Alt мешает меньше всего."
+                                    Style="{StaticResource CardHint}"/>
+                        </StackPanel>
+                        <ComboBox Grid.Column="2" MinWidth="150" VerticalAlignment="Center"
+                                SelectedIndex="{Binding TriggerIndex, Mode=TwoWay}">
+                            <ComboBoxItem Content="Alt"/>
+                            <ComboBoxItem Content="Ctrl"/>
+                            <ComboBoxItem Content="Shift"/>
+                        </ComboBox>
+                    </Grid>
+                </Border>
 
-            <!-- Автозапуск -->
-            <Border Style="{StaticResource Card}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon Grid.Column="0" Symbol="Power24" FontSize="22" Margin="0,0,14,0"/>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                        <TextBlock Text="Запускать вместе с Windows" Style="{StaticResource CardTitle}"/>
-                        <TextBlock Text="Приложение стартует в фоне, без этого окна" Style="{StaticResource CardHint}"/>
-                    </StackPanel>
-                    <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
-                                     IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
-                </Grid>
-            </Border>
+                <!-- Размер меню -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Grid.Column="0" Symbol="ResizeLarge24" FontSize="22" Margin="0,0,14,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="Размер меню" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="Применится при следующем появлении меню" Style="{StaticResource CardHint}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Slider x:Name="SizeSlider" Width="130" Minimum="70" Maximum="150"
+                                    TickFrequency="5" IsSnapToTickEnabled="True"
+                                    Value="{Binding MenuScalePercent, Mode=TwoWay, Delay=300}"/>
+                            <TextBlock Width="44" Margin="8,0,0,0" VerticalAlignment="Center" TextAlignment="Right"
+                                    Text="{Binding Value, ElementName=SizeSlider, StringFormat={}{0:0}%}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
 
-            <!-- Звук -->
-            <Border Style="{StaticResource Card}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon Grid.Column="0" Symbol="Speaker224" FontSize="22" Margin="0,0,14,0"/>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                        <TextBlock Text="Звук после действия" Style="{StaticResource CardTitle}"/>
-                        <TextBlock Text="Короткий сигнал, когда действие над файлом выполнено" Style="{StaticResource CardHint}"/>
-                    </StackPanel>
-                    <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
-                                     IsChecked="{Binding PlaySound, Mode=TwoWay}"/>
-                </Grid>
-            </Border>
+                <!-- Автозапуск -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Grid.Column="0" Symbol="Power24" FontSize="22" Margin="0,0,14,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="Запускать вместе с Windows" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="Приложение стартует в фоне, без этого окна" Style="{StaticResource CardHint}"/>
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
+                                        IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
+                    </Grid>
+                </Border>
 
-            <TextBlock Margin="2,8,2,0" Style="{StaticResource CardHint}"
-                       Text="Закрытие этого окна не останавливает HoverDrop: он продолжает работать в фоне. Чтобы открыть настройки снова, запусти HoverDrop.exe ещё раз."/>
+                <!-- Звук -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Grid.Column="0" Symbol="Speaker224" FontSize="22" Margin="0,0,14,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="Звук после действия" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="Короткий сигнал, когда действие над файлом выполнено" Style="{StaticResource CardHint}"/>
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
+                                        IsChecked="{Binding PlaySound, Mode=TwoWay}"/>
+                    </Grid>
+                </Border>
 
-            <Button Content="Выйти из HoverDrop" Command="{Binding ExitCommand}"
-                    HorizontalAlignment="Left" Margin="0,16,0,0"/>
-        </StackPanel>
+                <!-- Подтверждение удаления -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Grid.Column="0" Symbol="Delete24" FontSize="22" Margin="0,0,14,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="Подтверждать удаление" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="Спрашивать перед тем, как отправить файл в корзину" Style="{StaticResource CardHint}"/>
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
+                                        IsChecked="{Binding ConfirmDelete, Mode=TwoWay}"/>
+                    </Grid>
+                </Border>
+
+                <TextBlock Margin="2,8,2,0" Style="{StaticResource CardHint}"
+                        Text="Закрытие этого окна не останавливает HoverDrop: он продолжает работать в фоне. Чтобы открыть настройки снова, запусти HoverDrop.exe ещё раз."/>
+
+                <Button Content="Выйти из HoverDrop" Command="{Binding ExitCommand}"
+                        HorizontalAlignment="Left" Margin="0,16,0,0"/>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </ui:FluentWindow>

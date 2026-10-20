@@ -8,23 +8,30 @@ using HoverDrop.App.Utils;namespace HoverDrop.App.Hooks
     {
         private readonly TaskPoolGlobalHook _hook;
         private bool _isLButtonDown = false;
-        private bool _isTriggerDown = false;        public event Action<Point>? ShowOverlayRequested;
-        public event Action? HideOverlayRequested;        public InputHookService()
+        private bool _cancelled;
+        private bool _isTriggerDown = false;        
+        public event Action<Point>? ShowOverlayRequested;
+        public event Action? HideOverlayRequested;        
+        public InputHookService()
         {
             _hook = new TaskPoolGlobalHook();
             _hook.MousePressed += OnMousePressed;
             _hook.MouseReleased += OnMouseReleased;
             _hook.KeyPressed += OnKeyPressed;
             _hook.KeyReleased += OnKeyReleased;
-        }        public void Start() => _hook.RunAsync();
-        public void Stop() => _hook.Dispose();        private void OnMousePressed(object? sender, MouseHookEventArgs e)
+        }        
+        public void Start() => _hook.RunAsync();
+        public void Stop() => _hook.Dispose();        
+        private void OnMousePressed(object? sender, MouseHookEventArgs e)
         {
             if (e.Data.Button == MouseButton.Button1)
             {
                 _isLButtonDown = true;
+                _cancelled = false;
                 CheckAndFireEvent();
             }
-        }        private void OnMouseReleased(object? sender, MouseHookEventArgs e)
+        }        
+        private void OnMouseReleased(object? sender, MouseHookEventArgs e)
         {
             if (e.Data.Button == MouseButton.Button1)
             {
@@ -36,8 +43,20 @@ using HoverDrop.App.Utils;namespace HoverDrop.App.Hooks
                         if (!_isLButtonDown) HideOverlayRequested?.Invoke();
                     }));
             }
-        }        private void OnKeyPressed(object? sender, KeyboardHookEventArgs e)
+        }        
+        private void OnKeyPressed(object? sender, KeyboardHookEventArgs e)
         {
+            if (e.Data.KeyCode == KeyCode.VcEscape)
+            {
+                // Esc отменяет текущее перетаскивание: прячем меню и не показываем его снова до следующего нажатия ЛКМ
+                if (_isLButtonDown && _isTriggerDown)
+                {
+                    _cancelled = true;
+                    Application.Current.Dispatcher.Invoke(() => HideOverlayRequested?.Invoke());
+                }
+                return;
+            }
+
             if (IsMatchingTriggerKey(e.Data.KeyCode))
             {
                 // Проверяем, не была ли кнопка УЖЕ нажата (защита от автоповтора Windows)
@@ -47,7 +66,8 @@ using HoverDrop.App.Utils;namespace HoverDrop.App.Hooks
                     CheckAndFireEvent();
                 }
             }
-        }        private void OnKeyReleased(object? sender, KeyboardHookEventArgs e)
+        }        
+        private void OnKeyReleased(object? sender, KeyboardHookEventArgs e)
         {
             if (IsMatchingTriggerKey(e.Data.KeyCode))
             {
@@ -68,9 +88,10 @@ using HoverDrop.App.Utils;namespace HoverDrop.App.Hooks
                 TriggerModifier.Shift => code == KeyCode.VcLeftShift || code == KeyCode.VcRightShift,
                 _ => false
             };
-        }        private void CheckAndFireEvent()
+        }        
+        private void CheckAndFireEvent()
         {
-            if (_isLButtonDown && _isTriggerDown)
+            if (_isLButtonDown && _isTriggerDown && !_cancelled)
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {

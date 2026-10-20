@@ -26,10 +26,13 @@ namespace HoverDrop.App.Models
         [ObservableProperty]
         private bool _isHovered;
 
+        public bool IsDanger { get; }
+
         public FileAction(string title, SymbolRegular icon)
         {
             Title = title;
             Icon = icon;
+            IsDanger = title == "Удалить";
         }
     }
 }

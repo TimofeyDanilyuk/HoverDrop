@@ -64,6 +64,7 @@ namespace HoverDrop.App
                             await Services.FileActionService.ExecuteGroupActionAsync(files, actionTitle);
 
                         if (AppSettings.PlaySound) System.Media.SystemSounds.Beep.Play();
+                        if (actionTitle == "Удалить" && AppSettings.ConfirmDelete && !ConfirmDelete(files)) return;
                     }
                     return;
                 }
@@ -73,6 +74,16 @@ namespace HoverDrop.App
             ViewModel.Reset();
         }
 
+        private static bool ConfirmDelete(string[] files)
+        {
+            string text = files.Length == 1
+                ? $"Переместить в корзину «{System.IO.Path.GetFileName(files[0].TrimEnd('\\', '/'))}»?"
+                : $"Переместить в корзину выбранное ({files.Length} шт.)?";
+
+            return MessageBox.Show(text, "HoverDrop", MessageBoxButton.YesNo,
+                MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+        }
+
         // Считаем по экранным координатам (физические пиксели): не зависит от DPI и от e.GetPosition
         private void UpdateHoverFromCursor()
         {
@@ -80,8 +91,9 @@ namespace HoverDrop.App
             Point cursorPx = MouseHelper.GetCursorPosition();
             Point centerPx = PointToScreen(new Point(ActualWidth / 2, ActualHeight / 2));
 
-            double dx = (cursorPx.X - centerPx.X) / dpi.DpiScaleX;
-            double dy = (cursorPx.Y - centerPx.Y) / dpi.DpiScaleY;
+            double k = ActualWidth / (OverlayViewModel.Center * 2);
+            double dx = (cursorPx.X - centerPx.X) / dpi.DpiScaleX / k;
+            double dy = (cursorPx.Y - centerPx.Y) / dpi.DpiScaleY / k;
             double distance = Math.Sqrt(dx * dx + dy * dy);
 
             double angle = Math.Atan2(dy, dx) * (180 / Math.PI) + 90; // 0° строго вверх

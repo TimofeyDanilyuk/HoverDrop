@@ -5,6 +5,7 @@ using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using HoverDrop.App.Models;
 using Wpf.Ui.Controls;
+using HoverDrop.App.Utils;
 
 namespace HoverDrop.App.ViewModels
 {
@@ -39,6 +40,14 @@ namespace HoverDrop.App.ViewModels
 
         [ObservableProperty]
         private SymbolRegular _fileIcon = SymbolRegular.Document24;
+        // Системная иконка файла; если null, показывается SymbolRegular
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasFileImage))]
+        [NotifyPropertyChangedFor(nameof(HasNoFileImage))]
+        private ImageSource? _fileImage;
+
+        public bool HasFileImage => FileImage != null;
+        public bool HasNoFileImage => FileImage == null;
 
         // Для группы файлов: число под иконкой в центре
         [ObservableProperty]
@@ -77,6 +86,7 @@ namespace HoverDrop.App.ViewModels
             string ext = isDir ? "" : Path.GetExtension(filePath).ToLower();
             FileName = Path.GetFileName(filePath.TrimEnd('\\', '/'));
             FileIcon = isDir ? SymbolRegular.Folder24 : GetFileIcon(ext);
+            FileImage = ShellIcon.Get(filePath);
 
             var list = new System.Collections.Generic.List<string>();
 
@@ -106,6 +116,7 @@ namespace HoverDrop.App.ViewModels
             CountText = paths.Length.ToString();
             FileName = $"{paths.Length} файлов";
             FileIcon = SymbolRegular.Copy24;
+            FileImage = null;
 
             var list = new System.Collections.Generic.List<string>
             {
@@ -231,6 +242,7 @@ namespace HoverDrop.App.ViewModels
             IsGroup = false;
             CountText = "";
             CenterText = "Отпустите файл";
+            FileImage = null;
         }
     }
 }

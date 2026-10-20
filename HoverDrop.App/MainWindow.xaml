@@ -15,8 +15,8 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </Window.Resources>
 
-    <!-- Корневой Grid: анимация появления (fade + scale 0.9 -> 1 за 120 мс) -->
-    <Grid RenderTransformOrigin="0.5,0.5">
+    <Viewbox Stretch="Uniform">
+    <Grid Width="400" Height="400" RenderTransformOrigin="0.5,0.5">
         <Grid.RenderTransform>
             <ScaleTransform ScaleX="1" ScaleY="1"/>
         </Grid.RenderTransform>
@@ -88,7 +88,7 @@
                             </Path.Fill>
                         </Path>
 
-                        <!-- Слой 2: тонировка (светлеет при наведении) -->
+                        <!-- Слой 2: тонировка (светлеет при наведении, у «Удалить» красная) -->
                         <Path Data="{Binding Shape}">
                             <Path.Style>
                                 <Style TargetType="Path">
@@ -97,6 +97,16 @@
                                         <DataTrigger Binding="{Binding IsHovered}" Value="True">
                                             <Setter Property="Fill" Value="{DynamicResource Glass.TintHover}"/>
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsDanger}" Value="True">
+                                            <Setter Property="Fill" Value="#80D13438"/>
+                                        </DataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsDanger}" Value="True"/>
+                                                <Condition Binding="{Binding IsHovered}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Fill" Value="#CCD13438"/>
+                                        </MultiDataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Path.Style>
@@ -113,6 +123,13 @@
                                             <Setter Property="Stroke" Value="{DynamicResource Glass.RimHover}"/>
                                             <Setter Property="StrokeThickness" Value="2"/>
                                         </DataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsDanger}" Value="True"/>
+                                                <Condition Binding="{Binding IsHovered}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Stroke" Value="#FFFF6B6B"/>
+                                        </MultiDataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Path.Style>
@@ -140,18 +157,29 @@
 
         <!-- Центр: только иконка, без фона -->
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
-            <ui:SymbolIcon Symbol="{Binding FileIcon}" FontSize="64" Foreground="White" HorizontalAlignment="Center">
-                <ui:SymbolIcon.Effect>
-                    <DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.9" Color="Black"/>
-                </ui:SymbolIcon.Effect>
-            </ui:SymbolIcon>
+            <Grid HorizontalAlignment="Center">
+                <ui:SymbolIcon Symbol="{Binding FileIcon}" FontSize="64" Foreground="White" HorizontalAlignment="Center"
+                            Visibility="{Binding HasNoFileImage, Converter={StaticResource BoolToVis}}">
+                    <ui:SymbolIcon.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.9" Color="Black"/>
+                    </ui:SymbolIcon.Effect>
+                </ui:SymbolIcon>
+                <Image Source="{Binding FileImage}" Width="64" Height="64"
+                    RenderOptions.BitmapScalingMode="HighQuality"
+                    Visibility="{Binding HasFileImage, Converter={StaticResource BoolToVis}}">
+                    <Image.Effect>
+                        <DropShadowEffect BlurRadius="8" ShadowDepth="0" Opacity="0.7" Color="Black"/>
+                    </Image.Effect>
+                </Image>
+            </Grid>
             <TextBlock Text="{Binding CountText}" FontSize="20" FontWeight="Bold" Foreground="White"
-                       HorizontalAlignment="Center"
-                       Visibility="{Binding IsGroup, Converter={StaticResource BoolToVis}}">
+                    HorizontalAlignment="Center"
+                    Visibility="{Binding IsGroup, Converter={StaticResource BoolToVis}}">
                 <TextBlock.Effect>
                     <DropShadowEffect BlurRadius="8" ShadowDepth="0" Opacity="0.9" Color="Black"/>
                 </TextBlock.Effect>
             </TextBlock>
         </StackPanel>
     </Grid>
+    </Viewbox>
 </Window>

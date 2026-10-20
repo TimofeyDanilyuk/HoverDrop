@@ -85,6 +85,10 @@ namespace HoverDrop.App
         {
             if (MainWindow.IsVisible) return;
 
+            double size = OverlayViewModel.Center * 2 * AppSettings.MenuScale;
+            MainWindow.Width = size;
+            MainWindow.Height = size;
+
             var dpi = VisualTreeHelper.GetDpi(MainWindow);
 
             // Снимок и размытие фона под меню: строго ДО показа окна

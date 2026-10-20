@@ -6,6 +6,9 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 using ImageMagick;
 
 namespace HoverDrop.App.Services
@@ -19,6 +22,8 @@ namespace HoverDrop.App.Services
             string parent = Path.GetDirectoryName(path) ?? "";
             string name = isDir ? Path.GetFileName(path) : Path.GetFileNameWithoutExtension(path);
             string ext = isDir ? "" : Path.GetExtension(path).ToLower();
+            var toast = ToastService.Begin($"{actionName}: {Path.GetFileName(path)}");
+            bool failed = false;
 
             await Task.Run(() =>
             {
@@ -83,6 +88,18 @@ namespace HoverDrop.App.Services
                             ZipFile.ExtractToDirectory(path, extractDir, true);
                             return;
                         }
+
+                        case "Распаковать сюда" when ext == ".rar" || ext == ".7z":
+                            ExtractArchive(path, parent);
+                            return;
+
+                        case "Распаковать в папку" when ext == ".rar" || ext == ".7z":
+                        {
+                            string extractDir = Path.Combine(parent, name);
+                            Directory.CreateDirectory(extractDir);
+                            ExtractArchive(path, extractDir);
+                            return;
+                        }
                     }
 
                     // --- ИЗОБРАЖЕНИЯ (Magick.NET) ---
@@ -129,33 +146,36 @@ namespace HoverDrop.App.Services
                         {
                             case "В MP3 (Аудио)":
                             case "В MP3":
-                                RunFfmpeg($"-i {input} -vn -q:a 0 \"{OutPath(parent, name, ".mp3", path)}\" -y");
+                                RunFfmpeg(toast, $"-i {input} -vn -q:a 0 \"{OutPath(parent, name, ".mp3", path)}\" -y");
                                 break;
                             case "В WAV":
-                                RunFfmpeg($"-i {input} -vn \"{OutPath(parent, name, ".wav", path)}\" -y");
+                                RunFfmpeg(toast, $"-i {input} -vn \"{OutPath(parent, name, ".wav", path)}\" -y");
                                 break;
                             case "В GIF":
-                                RunFfmpeg($"-i {input} -vf \"fps=10,scale=480:-1:flags=lanczos\" \"{OutPath(parent, name, ".gif", path)}\" -y");
+                                RunFfmpeg(toast, $"-i {input} -vf \"fps=10,scale=480:-1:flags=lanczos\" \"{OutPath(parent, name, ".gif", path)}\" -y");
                                 break;
                             case "Сжать (720p)":
-                                RunFfmpeg($"-i {input} -vf scale=-2:720 -c:v libx264 -crf 26 -c:a copy \"{Path.Combine(parent, $"{name}_720p.mp4")}\" -y");
+                                RunFfmpeg(toast, $"-i {input} -vf scale=-2:720 -c:v libx264 -crf 26 -c:a copy \"{Path.Combine(parent, $"{name}_720p.mp4")}\" -y");
                                 break;
                             case "Сжать (64kbps)":
-                                RunFfmpeg($"-i {input} -vn -b:a 64k \"{Path.Combine(parent, $"{name}_64k.mp3")}\" -y");
+                                RunFfmpeg(toast, $"-i {input} -vn -b:a 64k \"{Path.Combine(parent, $"{name}_64k.mp3")}\" -y");
                                 break;
                             case "Удалить звук":
-                                RunFfmpeg($"-i {input} -c copy -an \"{Path.Combine(parent, $"{name}_nosound{ext}")}\" -y");
+                                RunFfmpeg(toast, $"-i {input} -c copy -an \"{Path.Combine(parent, $"{name}_nosound{ext}")}\" -y");
                                 break;
                         }
                     }
                 }
                 catch (Exception ex)
                 {
+                    failed = true;
                     Application.Current.Dispatcher.Invoke(() =>
                         MessageBox.Show($"Ошибка при обработке файла: {ex.Message}", "HoverDrop",
                             MessageBoxButton.OK, MessageBoxImage.Error));
                 }
             });
+
+            if (failed) toast.Fail(); else toast.Complete();
         }
 
         // Если итоговый путь совпал с исходным файлом, добавляем суффикс, чтобы не затереть оригинал
@@ -167,6 +187,25 @@ namespace HoverDrop.App.Services
             return result;
         }
 
+        // Распаковка .rar/.7z через SharpCompress (с защитой от выхода за пределы папки)
+        private static void ExtractArchive(string archivePath, string targetDir)
+        {
+            string root = Path.GetFullPath(targetDir);
+            using var archive = SharpCompress.Archives.ArchiveFactory.OpenArchive(archivePath);
+            foreach (var entry in archive.Entries)
+            {
+                if (entry.IsDirectory || string.IsNullOrEmpty(entry.Key)) continue;
+
+                string dest = Path.GetFullPath(Path.Combine(root, entry.Key.Replace('/', Path.DirectorySeparatorChar)));
+                if (!dest.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) continue;
+
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                using var src = entry.OpenEntryStream();
+                using var dst = File.Create(dest);
+                src.CopyTo(dst);
+            }
+        }
+
         private static void CopyDirectory(string source, string target)
         {
             Directory.CreateDirectory(target);
@@ -176,7 +215,14 @@ namespace HoverDrop.App.Services
                 CopyDirectory(dir, Path.Combine(target, Path.GetFileName(dir)));
         }
 
-        private static void RunFfmpeg(string arguments)
+        private static readonly Regex DurationRx = new(@"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", RegexOptions.Compiled);
+        private static readonly Regex TimeRx = new(@"time=(\d+):(\d+):(\d+(?:\.\d+)?)", RegexOptions.Compiled);
+
+        private static double ParseSeconds(Match m) =>
+            int.Parse(m.Groups[1].Value) * 3600 + int.Parse(m.Groups[2].Value) * 60 +
+            double.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
+
+        private static void RunFfmpeg(ToastHandle toast, string arguments)
         {
             // Сначала ищем ffmpeg.exe рядом с приложением, иначе берём из PATH
             string local = Path.Combine(AppContext.BaseDirectory, "ffmpeg.exe");
@@ -192,10 +238,34 @@ namespace HoverDrop.App.Services
             try
             {
                 using var process = Process.Start(psi)!;
-                string err = process.StandardError.ReadToEnd();
+                var tail = new StringBuilder();
+                double total = 0;
+
+                // ffmpeg пишет прогресс в stderr, строки разделены \r: ReadLine это понимает
+                string? line;
+                while ((line = process.StandardError.ReadLine()) != null)
+                {
+                    tail.AppendLine(line);
+                    if (tail.Length > 2000) tail.Remove(0, tail.Length - 2000);
+
+                    if (total <= 0)
+                    {
+                        var d = DurationRx.Match(line);
+                        if (d.Success) total = ParseSeconds(d);
+                    }
+                    else
+                    {
+                        var t = TimeRx.Match(line);
+                        if (t.Success) toast.Report(ParseSeconds(t) / total);
+                    }
+                }
+
                 process.WaitForExit();
                 if (process.ExitCode != 0)
+                {
+                    string err = tail.ToString();
                     throw new InvalidOperationException("FFmpeg завершился с ошибкой:\n" + err[^Math.Min(err.Length, 400)..]);
+                }
             }
             catch (Win32Exception)
             {
@@ -209,6 +279,8 @@ namespace HoverDrop.App.Services
         {
             string parent = Path.GetDirectoryName(paths[0].TrimEnd('\\', '/')) ?? "";
             var errors = new List<string>();
+            var toast = ToastService.Begin($"{actionName}: {paths.Length} шт.");
+            int done = 0;
 
             void ForEachSafe(Action<string> action)
             {
@@ -216,6 +288,7 @@ namespace HoverDrop.App.Services
                 {
                     try { action(p); }
                     catch (Exception ex) { errors.Add($"{Path.GetFileName(p.TrimEnd('\\', '/'))}: {ex.Message}"); }
+                    toast.Report(++done / (double)paths.Length);
                 }
             }
 
@@ -301,6 +374,7 @@ namespace HoverDrop.App.Services
                 }
             });
 
+            if (errors.Count > 0) toast.Fail(); else toast.Complete();
             if (errors.Count > 0)
             {
                 MessageBox.Show("Не всё удалось обработать:\n\n" + string.Join("\n", errors.Take(8)),
