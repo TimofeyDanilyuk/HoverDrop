@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 env:
-  PROJECT: HoverDrop/HoverDrop.App/HoverDrop.App.csproj
+  PROJECT: HoverDrop.App/HoverDrop.App.csproj
 
 jobs:
   build:
