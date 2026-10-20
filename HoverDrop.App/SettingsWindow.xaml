@@ -1,0 +1,134 @@
+﻿<ui:FluentWindow x:Class="HoverDrop.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:vm="clr-namespace:HoverDrop.App.ViewModels"
+        Title="Настройки HoverDrop" Height="560" Width="480"
+        WindowStartupLocation="CenterScreen"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica">
+
+    <ui:FluentWindow.DataContext>
+        <vm:SettingsViewModel />
+    </ui:FluentWindow.DataContext>
+
+    <ui:FluentWindow.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,14"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="CardTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="CardHint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+        </Style>
+    </ui:FluentWindow.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="HoverDrop"/>
+
+        <StackPanel Grid.Row="1" Margin="24,8,24,24">
+            <TextBlock Text="Настройки" FontSize="26" FontWeight="Bold" Margin="0,0,0,16"/>
+
+            <!-- Тема -->
+            <Border Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Grid.Column="0" Symbol="WeatherMoon24" FontSize="22" Margin="0,0,14,0"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Тема оформления" Style="{StaticResource CardTitle}"/>
+                        <TextBlock Text="Влияет на это окно и на цвет «стекла» в меню" Style="{StaticResource CardHint}"/>
+                    </StackPanel>
+                    <ComboBox Grid.Column="2" MinWidth="150" VerticalAlignment="Center"
+                              SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="Как в системе"/>
+                        <ComboBoxItem Content="Светлая"/>
+                        <ComboBoxItem Content="Тёмная"/>
+                    </ComboBox>
+                </Grid>
+            </Border>
+
+            <!-- Горячая клавиша -->
+            <Border Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Grid.Column="0" Symbol="Keyboard24" FontSize="22" Margin="0,0,14,0"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock Text="Горячая клавиша" Style="{StaticResource CardTitle}"/>
+                        <TextBlock Text="Удерживай её при перетаскивании файла, чтобы открыть меню. Ctrl и Shift меняют поведение проводника при перетаскивании, Alt мешает меньше всего."
+                                   Style="{StaticResource CardHint}"/>
+                    </StackPanel>
+                    <ComboBox Grid.Column="2" MinWidth="150" VerticalAlignment="Center"
+                              SelectedIndex="{Binding TriggerIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="Alt"/>
+                        <ComboBoxItem Content="Ctrl"/>
+                        <ComboBoxItem Content="Shift"/>
+                    </ComboBox>
+                </Grid>
+            </Border>
+
+            <!-- Автозапуск -->
+            <Border Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Grid.Column="0" Symbol="Power24" FontSize="22" Margin="0,0,14,0"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock Text="Запускать вместе с Windows" Style="{StaticResource CardTitle}"/>
+                        <TextBlock Text="Приложение стартует в фоне, без этого окна" Style="{StaticResource CardHint}"/>
+                    </StackPanel>
+                    <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
+                                     IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
+                </Grid>
+            </Border>
+
+            <!-- Звук -->
+            <Border Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Grid.Column="0" Symbol="Speaker224" FontSize="22" Margin="0,0,14,0"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock Text="Звук после действия" Style="{StaticResource CardTitle}"/>
+                        <TextBlock Text="Короткий сигнал, когда действие над файлом выполнено" Style="{StaticResource CardHint}"/>
+                    </StackPanel>
+                    <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
+                                     IsChecked="{Binding PlaySound, Mode=TwoWay}"/>
+                </Grid>
+            </Border>
+
+            <TextBlock Margin="2,8,2,0" Style="{StaticResource CardHint}"
+                       Text="Закрытие этого окна не останавливает HoverDrop: он продолжает работать в фоне. Чтобы открыть настройки снова, запусти HoverDrop.exe ещё раз."/>
+
+            <Button Content="Выйти из HoverDrop" Command="{Binding ExitCommand}"
+                    HorizontalAlignment="Left" Margin="0,16,0,0"/>
+        </StackPanel>
+    </Grid>
+</ui:FluentWindow>
