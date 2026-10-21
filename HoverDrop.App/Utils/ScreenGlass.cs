@@ -96,9 +96,9 @@ namespace HoverDrop.App.Utils
             var outPx = new byte[sw * sh * 4];
             for (int i = 0; i < sw * sh; i++)
             {
-                outPx[i * 4] = (byte)small[i * 3];
-                outPx[i * 4 + 1] = (byte)small[i * 3 + 1];
-                outPx[i * 4 + 2] = (byte)small[i * 3 + 2];
+                outPx[i * 4] = (byte)Math.Clamp(small[i * 3], 0f, 255f);
+                outPx[i * 4 + 1] = (byte)Math.Clamp(small[i * 3 + 1], 0f, 255f);
+                outPx[i * 4 + 2] = (byte)Math.Clamp(small[i * 3 + 2], 0f, 255f);
                 outPx[i * 4 + 3] = 255;
             }
 

@@ -1,9 +1,9 @@
-﻿<ui:FluentWindow x:Class="HoverDrop.App.SettingsWindow"
+<ui:FluentWindow x:Class="HoverDrop.App.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:vm="clr-namespace:HoverDrop.App.ViewModels"
-        Title="Настройки HoverDrop" Height="560" Width="480"
+        Title="HoverDrop" Height="600" Width="490"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
         Icon="pack://application:,,,/Assets/HoverDrop.ico"
@@ -45,9 +45,31 @@
             </ui:TitleBar.Icon>
         </ui:TitleBar>
 
-    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Grid.Row="1" Margin="24,8,24,24">
-                <TextBlock Text="Настройки" FontSize="26" FontWeight="Bold" Margin="0,0,0,16"/>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="24,8,24,24">
+                <TextBlock Text="{Binding SettingsHeader}" FontSize="26" FontWeight="Bold" Margin="0,0,0,16"/>
+
+                <!-- Язык интерфейса -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Grid.Column="0" Symbol="LocalLanguage24" FontSize="22" Margin="0,0,14,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="{Binding LanguageTitle}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="{Binding LanguageHint}" Style="{StaticResource CardHint}"/>
+                        </StackPanel>
+                        <ComboBox Grid.Column="2" MinWidth="150" VerticalAlignment="Center"
+                                  SelectedIndex="{Binding LanguageIndex, Mode=TwoWay}">
+                            <ComboBoxItem Content="Auto (System)"/>
+                            <ComboBoxItem Content="Русский"/>
+                            <ComboBoxItem Content="English"/>
+                        </ComboBox>
+                    </Grid>
+                </Border>
 
                 <!-- Тема -->
                 <Border Style="{StaticResource Card}">
@@ -59,14 +81,14 @@
                         </Grid.ColumnDefinitions>
                         <ui:SymbolIcon Grid.Column="0" Symbol="WeatherMoon24" FontSize="22" Margin="0,0,14,0"/>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="Тема оформления" Style="{StaticResource CardTitle}"/>
-                            <TextBlock Text="Влияет на это окно и на цвет «стекла» в меню" Style="{StaticResource CardHint}"/>
+                            <TextBlock Text="{Binding ThemeTitle}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="{Binding ThemeHint}" Style="{StaticResource CardHint}"/>
                         </StackPanel>
                         <ComboBox Grid.Column="2" MinWidth="150" VerticalAlignment="Center"
                                 SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}">
-                            <ComboBoxItem Content="Как в системе"/>
-                            <ComboBoxItem Content="Светлая"/>
-                            <ComboBoxItem Content="Тёмная"/>
+                            <ComboBoxItem Content="System"/>
+                            <ComboBoxItem Content="Light"/>
+                            <ComboBoxItem Content="Dark"/>
                         </ComboBox>
                     </Grid>
                 </Border>
@@ -81,9 +103,8 @@
                         </Grid.ColumnDefinitions>
                         <ui:SymbolIcon Grid.Column="0" Symbol="Keyboard24" FontSize="22" Margin="0,0,14,0"/>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                            <TextBlock Text="Горячая клавиша" Style="{StaticResource CardTitle}"/>
-                            <TextBlock Text="Удерживай её при перетаскивании файла, чтобы открыть меню. Ctrl и Shift меняют поведение проводника при перетаскивании, Alt мешает меньше всего."
-                                    Style="{StaticResource CardHint}"/>
+                            <TextBlock Text="{Binding HotkeyTitle}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="{Binding HotkeyHint}" Style="{StaticResource CardHint}"/>
                         </StackPanel>
                         <ComboBox Grid.Column="2" MinWidth="150" VerticalAlignment="Center"
                                 SelectedIndex="{Binding TriggerIndex, Mode=TwoWay}">
@@ -104,8 +125,8 @@
                         </Grid.ColumnDefinitions>
                         <ui:SymbolIcon Grid.Column="0" Symbol="ResizeLarge24" FontSize="22" Margin="0,0,14,0"/>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                            <TextBlock Text="Размер меню" Style="{StaticResource CardTitle}"/>
-                            <TextBlock Text="Применится при следующем появлении меню" Style="{StaticResource CardHint}"/>
+                            <TextBlock Text="{Binding MenuScaleTitle}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="{Binding MenuScaleHint}" Style="{StaticResource CardHint}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                             <Slider x:Name="SizeSlider" Width="130" Minimum="70" Maximum="150"
@@ -127,8 +148,8 @@
                         </Grid.ColumnDefinitions>
                         <ui:SymbolIcon Grid.Column="0" Symbol="Power24" FontSize="22" Margin="0,0,14,0"/>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                            <TextBlock Text="Запускать вместе с Windows" Style="{StaticResource CardTitle}"/>
-                            <TextBlock Text="Приложение стартует в фоне, без этого окна" Style="{StaticResource CardHint}"/>
+                            <TextBlock Text="{Binding AutostartTitle}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="{Binding AutostartHint}" Style="{StaticResource CardHint}"/>
                         </StackPanel>
                         <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
                                         IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
@@ -145,48 +166,11 @@
                         </Grid.ColumnDefinitions>
                         <ui:SymbolIcon Grid.Column="0" Symbol="Speaker224" FontSize="22" Margin="0,0,14,0"/>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                            <TextBlock Text="Звук после действия" Style="{StaticResource CardTitle}"/>
-                            <TextBlock Text="Короткий сигнал, когда действие над файлом выполнено" Style="{StaticResource CardHint}"/>
+                            <TextBlock Text="{Binding SoundTitle}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="{Binding SoundHint}" Style="{StaticResource CardHint}"/>
                         </StackPanel>
                         <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
                                         IsChecked="{Binding PlaySound, Mode=TwoWay}"/>
-                    </Grid>
-                </Border>
-
-                <!-- Обновления -->
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <ui:SymbolIcon Grid.Column="0" Symbol="ArrowSync24" FontSize="22" Margin="0,0,14,0"/>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                            <TextBlock Text="Обновления" Style="{StaticResource CardTitle}"/>
-                            <TextBlock Text="{Binding VersionText}" Style="{StaticResource CardHint}"/>
-                            <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource CardHint}"/>
-                        </StackPanel>
-                        <Button Grid.Column="2" VerticalAlignment="Center"
-                                Content="{Binding UpdateButtonText}" Command="{Binding CheckUpdatesCommand}"/>
-                    </Grid>
-                </Border>
-
-                <!-- Автопроверка -->
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <ui:SymbolIcon Grid.Column="0" Symbol="CloudArrowDown24" FontSize="22" Margin="0,0,14,0"/>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                            <TextBlock Text="Проверять обновления автоматически" Style="{StaticResource CardTitle}"/>
-                            <TextBlock Text="Обновление скачивается само, а установить его вы решаете сами" Style="{StaticResource CardHint}"/>
-                        </StackPanel>
-                        <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
-                                        IsChecked="{Binding AutoUpdate, Mode=TwoWay}"/>
                     </Grid>
                 </Border>
 
@@ -200,18 +184,55 @@
                         </Grid.ColumnDefinitions>
                         <ui:SymbolIcon Grid.Column="0" Symbol="Delete24" FontSize="22" Margin="0,0,14,0"/>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                            <TextBlock Text="Подтверждать удаление" Style="{StaticResource CardTitle}"/>
-                            <TextBlock Text="Спрашивать перед тем, как отправить файл в корзину" Style="{StaticResource CardHint}"/>
+                            <TextBlock Text="{Binding ConfirmDeleteTitle}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="{Binding ConfirmDeleteHint}" Style="{StaticResource CardHint}"/>
                         </StackPanel>
                         <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
                                         IsChecked="{Binding ConfirmDelete, Mode=TwoWay}"/>
                     </Grid>
                 </Border>
 
-                <TextBlock Margin="2,8,2,0" Style="{StaticResource CardHint}"
-                        Text="Закрытие этого окна не останавливает HoverDrop: он продолжает работать в фоне. Настройки можно открыть из значка в системном трее."/>
+                <!-- Обновления -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Grid.Column="0" Symbol="ArrowSync24" FontSize="22" Margin="0,0,14,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="{Binding UpdatesTitle}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="{Binding VersionText}" Style="{StaticResource CardHint}"/>
+                            <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource CardHint}"/>
+                        </StackPanel>
+                        <Button Grid.Column="2" VerticalAlignment="Center"
+                                Content="{Binding UpdateButtonText}" Command="{Binding CheckUpdatesCommand}"/>
+                    </Grid>
+                </Border>
 
-                <Button Content="Выйти из HoverDrop" Command="{Binding ExitCommand}"
+                <!-- Автопроверка обновлений -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Grid.Column="0" Symbol="CloudArrowDown24" FontSize="22" Margin="0,0,14,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="{Binding AutoUpdateTitle}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="{Binding AutoUpdateHint}" Style="{StaticResource CardHint}"/>
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
+                                        IsChecked="{Binding AutoUpdate, Mode=TwoWay}"/>
+                    </Grid>
+                </Border>
+
+                <TextBlock Margin="2,8,2,0" Style="{StaticResource CardHint}"
+                           Text="{Binding FooterHint}"/>
+
+                <Button Content="{Binding ExitButton}" Command="{Binding ExitCommand}"
                         HorizontalAlignment="Left" Margin="0,16,0,0"/>
             </StackPanel>
         </ScrollViewer>

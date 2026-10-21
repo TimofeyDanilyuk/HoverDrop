@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using HoverDrop.App.Services;
 
 namespace HoverDrop.App.Utils
 {
@@ -14,6 +15,7 @@ namespace HoverDrop.App.Utils
     {
         public static ThemeMode Theme { get; set; } = ThemeMode.System;
         public static TriggerModifier TriggerKey { get; set; } = TriggerModifier.Alt;
+        public static AppLanguage Language { get; set; } = AppLanguage.System;
         public static bool StartWithWindows { get; set; }
         public static bool PlaySound { get; set; } = true;
         public static double MenuScale { get; set; } = 1.0;
@@ -33,6 +35,7 @@ namespace HoverDrop.App.Utils
         {
             public ThemeMode Theme { get; set; } = ThemeMode.System;
             public TriggerModifier TriggerKey { get; set; } = TriggerModifier.Alt;
+            public AppLanguage Language { get; set; } = AppLanguage.System;
             public bool ConfirmDelete { get; set; } = true;
             public bool StartWithWindows { get; set; }
             public bool PlaySound { get; set; } = true;
@@ -50,6 +53,7 @@ namespace HoverDrop.App.Utils
 
                 Theme = data.Theme;
                 TriggerKey = data.TriggerKey;
+                Language = data.Language;
                 StartWithWindows = data.StartWithWindows;
                 PlaySound = data.PlaySound;
                 MenuScale = Math.Clamp(data.MenuScale, 0.7, 1.5);
@@ -66,18 +70,24 @@ namespace HoverDrop.App.Utils
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
+                string dir = Path.GetDirectoryName(FilePath)!;
+                Directory.CreateDirectory(dir);
                 var data = new Data
                 {
                     Theme = Theme,
                     TriggerKey = TriggerKey,
+                    Language = Language,
                     StartWithWindows = StartWithWindows,
                     PlaySound = PlaySound,
                     ConfirmDelete = ConfirmDelete,
                     MenuScale = MenuScale,
                     AutoUpdate = AutoUpdate
                 };
-                File.WriteAllText(FilePath, JsonSerializer.Serialize(data, Options));
+
+                // Атомарное сохранение через временный файл
+                string tempPath = Path.Combine(dir, "settings.json.tmp");
+                File.WriteAllText(tempPath, JsonSerializer.Serialize(data, Options));
+                File.Move(tempPath, FilePath, true);
             }
             catch
             {

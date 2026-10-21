@@ -1,6 +1,7 @@
 using SharpHook;
 using SharpHook.Data;
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using HoverDrop.App.Utils;
 
@@ -13,6 +14,7 @@ namespace HoverDrop.App.Hooks
         private volatile bool _cancelled;
         private volatile bool _isTriggerDown;
         private bool _disposed;
+
         public bool Paused { get; set; }
 
         public event Action<Point>? ShowOverlayRequested;
@@ -56,10 +58,13 @@ namespace HoverDrop.App.Hooks
                 // Не прячем сразу: окну нужно время, чтобы получить Drop.
                 // Если Drop прошёл, окно скроется само; это страховка на случай отмены (Esc и т.п.).
                 _ = Task.Delay(400).ContinueWith(_ =>
-                    Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var dispatcher = Application.Current?.Dispatcher;
+                    dispatcher?.BeginInvoke(() =>
                     {
                         if (!_isLButtonDown) HideOverlayRequested?.Invoke();
-                    }));
+                    });
+                });
             }
         }
 
@@ -71,14 +76,14 @@ namespace HoverDrop.App.Hooks
                 if (_isLButtonDown && _isTriggerDown)
                 {
                     _cancelled = true;
-                    Application.Current.Dispatcher.Invoke(() => HideOverlayRequested?.Invoke());
+                    HideOverlayRequested?.Invoke();
                 }
                 return;
             }
 
             if (IsMatchingTriggerKey(e.Data.KeyCode))
             {
-                // Проверяем, не была ли кнопка УЖЕ нажата (защита от автоповтора Windows)
+                // Игнорируем авто-повтор зажатой клавиши операционной системой
                 if (!_isTriggerDown)
                 {
                     _isTriggerDown = true;
@@ -91,7 +96,6 @@ namespace HoverDrop.App.Hooks
         {
             if (IsMatchingTriggerKey(e.Data.KeyCode))
             {
-                // Сбрасываем флаг только при реальном отпускании клавиши
                 if (_isTriggerDown)
                 {
                     _isTriggerDown = false;
@@ -114,20 +118,16 @@ namespace HoverDrop.App.Hooks
 
         private void CheckAndFireEvent()
         {
-            if (_isLButtonDown && _isTriggerDown && !_cancelled && !Paused)
+            if (Paused) return;
+
+            if (_isLButtonDown && _isTriggerDown && !_cancelled)
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    var cursorPosition = MouseHelper.GetCursorPosition();
-                    ShowOverlayRequested?.Invoke(cursorPosition);
-                });
+                Point pos = MouseHelper.GetCursorPosition();
+                ShowOverlayRequested?.Invoke(pos);
             }
             else
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    HideOverlayRequested?.Invoke();
-                });
+                HideOverlayRequested?.Invoke();
             }
         }
     }

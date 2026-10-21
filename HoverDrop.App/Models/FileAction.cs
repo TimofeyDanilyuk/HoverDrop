@@ -1,12 +1,14 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System.Windows.Media;
 using Wpf.Ui.Controls;
+using HoverDrop.App.Services;
 
 namespace HoverDrop.App.Models
 {
     public partial class FileAction : ObservableObject
     {
-        public string Title { get; }
+        public FileActionType Type { get; }
+        public string Title => LocalizationService.GetActionTitle(Type);
         public SymbolRegular Icon { get; }
 
         // Размытый снимок фона для «стеклянной» заливки (общий для всех секторов)
@@ -26,13 +28,12 @@ namespace HoverDrop.App.Models
         [ObservableProperty]
         private bool _isHovered;
 
-        public bool IsDanger { get; }
+        public bool IsDanger => Type == FileActionType.Delete;
 
-        public FileAction(string title, SymbolRegular icon)
+        public FileAction(FileActionType type, SymbolRegular icon)
         {
-            Title = title;
+            Type = type;
             Icon = icon;
-            IsDanger = title == "Удалить";
         }
     }
 }

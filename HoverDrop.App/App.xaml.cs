@@ -1,6 +1,7 @@
-﻿﻿using System;
+using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using HoverDrop.App.Hooks;
@@ -36,9 +37,10 @@ namespace HoverDrop.App
         {
             base.OnStartup(e);
 
-            DispatcherUnhandledException += (_, ev) => Log.Write("UI exception: " + ev.Exception);
-            AppDomain.CurrentDomain.UnhandledException += (_, ev) => Log.Write("Fatal: " + ev.ExceptionObject);
-            Log.Write($"Start v{UpdateService.Instance.CurrentVersion}, args: {string.Join(' ', e.Args)}");
+            DispatcherUnhandledException += (_, ev) =>
+            {
+                ev.Handled = true;
+            };
 
             // Приложение живёт в фоне и закрывается только явно (кнопка «Выйти»)
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -109,7 +111,6 @@ namespace HoverDrop.App
 
         private void OnShowOverlay(Point cursorPosition)
         {
-            Log.Write("ShowOverlay");
             if (MainWindow.IsVisible) return;
 
             double size = OverlayViewModel.Center * 2 * AppSettings.MenuScale;
@@ -135,7 +136,6 @@ namespace HoverDrop.App
         // Пересоздаёт окно оверлея (после смены темы WPF-UI портит фон старого окна)
         public void RecreateOverlay()
         {
-            // При старте окна ещё нет, оно создаётся в OnStartup
             if (MainWindow == null) return;
 
             var old = MainWindow;
@@ -145,9 +145,10 @@ namespace HoverDrop.App
 
         private void OnHideOverlay()
         {
-            if (MainWindow == null) return;
-            MainWindow.Hide();
-            (MainWindow.DataContext as OverlayViewModel)?.Reset();
+            if (MainWindow is MainWindow mw)
+            {
+                _ = mw.HideAnimatedAsync();
+            }
         }
 
         protected override void OnExit(ExitEventArgs e)
@@ -173,9 +174,9 @@ namespace HoverDrop.App
             var result = await UpdateService.Instance.CheckAsync();
             string? text = result switch
             {
-                UpdateCheckResult.UpToDate => "У вас последняя версия",
-                UpdateCheckResult.NotInstalled => "Обновления работают только в установленной версии",
-                UpdateCheckResult.Error => "Не удалось проверить обновления",
+                UpdateCheckResult.UpToDate => LocalizationService.UpdateUpToDate,
+                UpdateCheckResult.NotInstalled => LocalizationService.UpdateNotInstalled,
+                UpdateCheckResult.Error => LocalizationService.UpdateError,
                 _ => null // Ready: уведомление покажет сам трей
             };
             if (text != null) _tray?.ShowInfo(text);

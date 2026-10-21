@@ -1,28 +1,33 @@
-﻿﻿using System;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Windows;
+using HoverDrop.App.Models;
 using ImageMagick;
 
 namespace HoverDrop.App.Services
 {
     public static class FileActionService
     {
-        public static async Task ExecuteActionAsync(string path, string actionName)
+        private static readonly HashSet<string> ImageExts = new(StringComparer.OrdinalIgnoreCase) { ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff" };
+        private static readonly HashSet<string> MediaExts = new(StringComparer.OrdinalIgnoreCase) { ".mp4", ".mkv", ".avi", ".mov", ".webm", ".mp3", ".wav", ".flac", ".ogg" };
+
+        public static async Task ExecuteActionAsync(string path, FileActionType action)
         {
             path = path.TrimEnd('\\', '/');
             bool isDir = Directory.Exists(path);
             string parent = Path.GetDirectoryName(path) ?? "";
             string name = isDir ? Path.GetFileName(path) : Path.GetFileNameWithoutExtension(path);
-            string ext = isDir ? "" : Path.GetExtension(path).ToLower();
-            var toast = ToastService.Begin($"{actionName}: {Path.GetFileName(path)}");
+            string ext = isDir ? "" : Path.GetExtension(path).ToLowerInvariant();
+            var toast = ToastService.Begin($"{LocalizationService.GetActionTitle(action)}: {Path.GetFileName(path)}");
             bool failed = false;
 
             await Task.Run(() =>
@@ -30,9 +35,9 @@ namespace HoverDrop.App.Services
                 try
                 {
                     // --- ОБЩИЕ ДЕЙСТВИЯ (файлы и папки) ---
-                    switch (actionName)
+                    switch (action)
                     {
-                        case "Удалить":
+                        case FileActionType.Delete:
                             if (isDir)
                                 Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(path,
                                     Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
@@ -43,16 +48,16 @@ namespace HoverDrop.App.Services
                                     Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
                             return;
 
-                        case "Копировать путь":
+                        case FileActionType.CopyPath:
                             Application.Current.Dispatcher.Invoke(() => Clipboard.SetText(path));
                             return;
 
-                        case "Сделать копию":
+                        case FileActionType.MakeCopy:
                             if (isDir) CopyDirectory(path, Path.Combine(parent, $"{name}_copy"));
                             else File.Copy(path, Path.Combine(parent, $"{name}_copy{ext}"), true);
                             return;
 
-                        case "На рабочий стол":
+                        case FileActionType.Desktop:
                         {
                             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                             string target = Path.Combine(desktop, Path.GetFileName(path));
@@ -61,7 +66,6 @@ namespace HoverDrop.App.Services
                                 try { Directory.Move(path, target); }
                                 catch (IOException)
                                 {
-                                    // Directory.Move падает между разными дисками: копируем и удаляем
                                     CopyDirectory(path, target);
                                     Directory.Delete(path, true);
                                 }
@@ -70,7 +74,7 @@ namespace HoverDrop.App.Services
                             return;
                         }
 
-                        case "В ZIP-архив":
+                        case FileActionType.ToZip:
                         {
                             string zipPath = Path.Combine(parent, $"{name}.zip");
                             if (File.Exists(zipPath)) File.Delete(zipPath);
@@ -86,11 +90,11 @@ namespace HoverDrop.App.Services
                             return;
                         }
 
-                        case "Распаковать сюда" when ext == ".zip":
+                        case FileActionType.ExtractHere when ext == ".zip":
                             ZipFile.ExtractToDirectory(path, parent, true);
                             return;
 
-                        case "Распаковать в папку" when ext == ".zip":
+                        case FileActionType.ExtractToFolder when ext == ".zip":
                         {
                             string extractDir = Path.Combine(parent, name);
                             Directory.CreateDirectory(extractDir);
@@ -98,11 +102,11 @@ namespace HoverDrop.App.Services
                             return;
                         }
 
-                        case "Распаковать сюда" when ext == ".rar" || ext == ".7z":
+                        case FileActionType.ExtractHere when ext == ".rar" || ext == ".7z":
                             ExtractArchive(path, parent);
                             return;
 
-                        case "Распаковать в папку" when ext == ".rar" || ext == ".7z":
+                        case FileActionType.ExtractToFolder when ext == ".rar" || ext == ".7z":
                         {
                             string extractDir = Path.Combine(parent, name);
                             Directory.CreateDirectory(extractDir);
@@ -112,34 +116,34 @@ namespace HoverDrop.App.Services
                     }
 
                     // --- ИЗОБРАЖЕНИЯ (Magick.NET) ---
-                    if (new[] { ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff" }.Contains(ext))
+                    if (ImageExts.Contains(ext))
                     {
                         using var image = new MagickImage(path);
-                        switch (actionName)
+                        switch (action)
                         {
-                            case "В JPG":
+                            case FileActionType.ToJpg:
                                 image.Format = MagickFormat.Jpeg;
                                 image.Quality = 90;
                                 image.Write(OutPath(parent, name, ".jpg", path));
                                 break;
-                            case "В PNG":
+                            case FileActionType.ToPng:
                                 image.Format = MagickFormat.Png;
                                 image.Write(OutPath(parent, name, ".png", path));
                                 break;
-                            case "В ICO":
+                            case FileActionType.ToIco:
                                 image.Resize(new MagickGeometry(256, 256) { IgnoreAspectRatio = false });
                                 image.Format = MagickFormat.Ico;
                                 image.Write(OutPath(parent, name, ".ico", path));
                                 break;
-                            case "В PDF":
+                            case FileActionType.ToPdf:
                                 image.Format = MagickFormat.Pdf;
                                 image.Write(OutPath(parent, name, ".pdf", path));
                                 break;
-                            case "Размыть":
+                            case FileActionType.Blur:
                                 image.Blur(0, 5);
                                 image.Write(Path.Combine(parent, $"{name}_blurred{ext}"));
                                 break;
-                            case "Обесцветить":
+                            case FileActionType.Grayscale:
                                 image.Grayscale();
                                 image.Write(Path.Combine(parent, $"{name}_bw{ext}"));
                                 break;
@@ -148,28 +152,28 @@ namespace HoverDrop.App.Services
                     }
 
                     // --- ВИДЕО И АУДИО (FFmpeg: рядом с exe или в PATH) ---
-                    if (new[] { ".mp4", ".mkv", ".avi", ".mov", ".webm", ".mp3", ".wav", ".flac", ".ogg" }.Contains(ext))
+                    if (MediaExts.Contains(ext))
                     {
                         string input = $"\"{path}\"";
-                        switch (actionName)
+                        switch (action)
                         {
-                            case "В MP3 (Аудио)":
-                            case "В MP3":
+                            case FileActionType.ToMp3Audio:
+                            case FileActionType.ToMp3:
                                 RunFfmpeg(toast, $"-i {input} -vn -q:a 0 \"{OutPath(parent, name, ".mp3", path)}\" -y");
                                 break;
-                            case "В WAV":
+                            case FileActionType.ToWav:
                                 RunFfmpeg(toast, $"-i {input} -vn \"{OutPath(parent, name, ".wav", path)}\" -y");
                                 break;
-                            case "В GIF":
+                            case FileActionType.ToGif:
                                 RunFfmpeg(toast, $"-i {input} -vf \"fps=10,scale=480:-1:flags=lanczos\" \"{OutPath(parent, name, ".gif", path)}\" -y");
                                 break;
-                            case "Сжать (720p)":
+                            case FileActionType.Compress720p:
                                 RunFfmpeg(toast, $"-i {input} -vf scale=-2:720 -c:v libx264 -crf 26 -c:a copy \"{Path.Combine(parent, $"{name}_720p.mp4")}\" -y");
                                 break;
-                            case "Сжать (64kbps)":
+                            case FileActionType.Compress64k:
                                 RunFfmpeg(toast, $"-i {input} -vn -b:a 64k \"{Path.Combine(parent, $"{name}_64k.mp3")}\" -y");
                                 break;
-                            case "Удалить звук":
+                            case FileActionType.RemoveAudio:
                                 RunFfmpeg(toast, $"-i {input} -c copy -an \"{Path.Combine(parent, $"{name}_nosound{ext}")}\" -y");
                                 break;
                         }
@@ -179,7 +183,7 @@ namespace HoverDrop.App.Services
                 {
                     failed = true;
                     Application.Current.Dispatcher.Invoke(() =>
-                        MessageBox.Show($"Ошибка при обработке файла: {ex.Message}", "HoverDrop",
+                        MessageBox.Show(LocalizationService.ErrorProcessing(ex.Message), "HoverDrop",
                             MessageBoxButton.OK, MessageBoxImage.Error));
                 }
             });
@@ -273,75 +277,81 @@ namespace HoverDrop.App.Services
                 if (process.ExitCode != 0)
                 {
                     string err = tail.ToString();
-                    throw new InvalidOperationException("FFmpeg завершился с ошибкой:\n" + err[^Math.Min(err.Length, 400)..]);
+                    throw new InvalidOperationException("FFmpeg error:\n" + err[^Math.Min(err.Length, 400)..]);
                 }
             }
             catch (Win32Exception)
             {
-                throw new InvalidOperationException("FFmpeg не найден. Положите ffmpeg.exe рядом с приложением или добавьте его в PATH.");
+                throw new InvalidOperationException("FFmpeg not found. Place ffmpeg.exe next to the app or add it to PATH.");
             }
         }
 
-        // ---------- ГРУППОВЫЕ ДЕЙСТВИЯ ----------
-
-        public static async Task ExecuteGroupActionAsync(string[] paths, string actionName)
+        // --- ГРУППОВЫЕ ДЕЙСТВИЯ (несколько файлов/папок) ---
+        public static async Task ExecuteGroupActionAsync(string[] paths, FileActionType action)
         {
-            string parent = Path.GetDirectoryName(paths[0].TrimEnd('\\', '/')) ?? "";
-            var errors = new List<string>();
-            var toast = ToastService.Begin($"{actionName}: {paths.Length} шт.");
+            if (paths.Length == 0) return;
+
+            string parent = Path.GetDirectoryName(paths[0]) ?? "";
+            var toast = ToastService.Begin($"{LocalizationService.GetActionTitle(action)}: {paths.Length}");
             int done = 0;
 
-            void ForEachSafe(Action<string> action)
+            void ForEachSafe(Action<string> fn)
             {
+                var errors = new List<string>();
                 foreach (var p in paths)
                 {
-                    try { action(p); }
-                    catch (Exception ex) { errors.Add($"{Path.GetFileName(p.TrimEnd('\\', '/'))}: {ex.Message}"); }
-                    toast.Report(++done / (double)paths.Length);
+                    try { fn(p); }
+                    catch (Exception ex) { errors.Add($"{Path.GetFileName(p)}: {ex.Message}"); }
+                    done++;
+                    toast.Report((double)done / paths.Length);
                 }
+                if (errors.Count > 0)
+                    throw new AggregateException(string.Join("\n", errors.Take(5)));
             }
+
+            var errors = new List<string>();
 
             await Task.Run(() =>
             {
                 try
                 {
-                    switch (actionName)
+                    switch (action)
                     {
-                        case "В ZIP-архив":
+                        case FileActionType.ToZip:
                         {
-                            string zipPath = UniquePath(Path.Combine(parent, $"Архив_{DateTime.Now:yyyyMMdd_HHmmss}.zip"));
+                            string zipPath = UniquePath(Path.Combine(parent, $"{LocalizationService.ArchivePrefix}_{DateTime.Now:yyyyMMdd_HHmmss}.zip"));
                             using var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create);
                             var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                             ForEachSafe(p =>
                             {
-                                string entryName = UniqueName(Path.GetFileName(p.TrimEnd('\\', '/')), used);
+                                string entryName = UniqueName(Path.GetFileName(p), used);
                                 if (Directory.Exists(p)) AddDirectoryToZip(archive, p, entryName);
                                 else archive.CreateEntryFromFile(p, entryName);
                             });
                             break;
                         }
 
-                        case "Собрать в папку":
+                        case FileActionType.CollectToFolder:
                         {
-                            string folder = UniquePath(Path.Combine(parent, "Новая папка"));
+                            string folder = UniquePath(Path.Combine(parent, LocalizationService.NewFolder));
                             Directory.CreateDirectory(folder);
                             ForEachSafe(p => MoveInto(p, folder));
                             break;
                         }
 
-                        case "Копировать пути":
+                        case FileActionType.CopyPaths:
                             Application.Current.Dispatcher.Invoke(() =>
                                 Clipboard.SetText(string.Join(Environment.NewLine, paths)));
                             break;
 
-                        case "На рабочий стол":
+                        case FileActionType.Desktop:
                         {
                             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                             ForEachSafe(p => MoveInto(p, desktop));
                             break;
                         }
 
-                        case "Удалить":
+                        case FileActionType.Delete:
                             ForEachSafe(p =>
                             {
                                 if (Directory.Exists(p))
@@ -355,14 +365,14 @@ namespace HoverDrop.App.Services
                             });
                             break;
 
-                        case "В JPG":
-                        case "В PNG":
+                        case FileActionType.ToJpg:
+                        case FileActionType.ToPng:
                             ForEachSafe(p =>
                             {
                                 string dir = Path.GetDirectoryName(p) ?? "";
                                 string name = Path.GetFileNameWithoutExtension(p);
                                 using var image = new MagickImage(p);
-                                if (actionName == "В JPG")
+                                if (action == FileActionType.ToJpg)
                                 {
                                     image.Format = MagickFormat.Jpeg;
                                     image.Quality = 90;
@@ -386,7 +396,7 @@ namespace HoverDrop.App.Services
             if (errors.Count > 0) toast.Fail(); else toast.Complete();
             if (errors.Count > 0)
             {
-                MessageBox.Show("Не всё удалось обработать:\n\n" + string.Join("\n", errors.Take(8)),
+                MessageBox.Show(LocalizationService.PartialErrors + string.Join("\n", errors.Take(8)),
                     "HoverDrop", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }

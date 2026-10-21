@@ -18,7 +18,7 @@ namespace HoverDrop.App.Services
         private ToastWindow? _win;
         private bool _done;
         private double? _progress;
-        private string _status = "Выполняется…";
+        private string _status = LocalizationService.InProgress;
 
         internal ToastHandle(string title)
         {
@@ -58,14 +58,14 @@ namespace HoverDrop.App.Services
             });
         }
 
-        public void Complete(string message = "Готово")
+        public void Complete(string? message = null)
         {
             _d.InvokeAsync(() =>
             {
                 _done = true;
                 var w = _win;
                 if (w == null) return;
-                w.SetStatus(message);
+                w.SetStatus(message ?? LocalizationService.Done);
                 w.SetProgress(1);
                 _ = CloseLater(w);
             });
