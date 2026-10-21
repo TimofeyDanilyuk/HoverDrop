@@ -1,17 +1,22 @@
-﻿using SharpHook;
-using SharpHook.Data; // Изменено с Native на Data
+using SharpHook;
+using SharpHook.Data;
 using System;
 using System.Windows;
-using HoverDrop.App.Utils;namespace HoverDrop.App.Hooks
+using HoverDrop.App.Utils;
+
+namespace HoverDrop.App.Hooks
 {
-    public class InputHookService
+    public class InputHookService : IDisposable
     {
         private readonly TaskPoolGlobalHook _hook;
-        private bool _isLButtonDown = false;
-        private bool _cancelled;
-        private bool _isTriggerDown = false;        
+        private volatile bool _isLButtonDown;
+        private volatile bool _cancelled;
+        private volatile bool _isTriggerDown;
+        private bool _disposed;
+
         public event Action<Point>? ShowOverlayRequested;
-        public event Action? HideOverlayRequested;        
+        public event Action? HideOverlayRequested;
+
         public InputHookService()
         {
             _hook = new TaskPoolGlobalHook();
@@ -19,9 +24,19 @@ using HoverDrop.App.Utils;namespace HoverDrop.App.Hooks
             _hook.MouseReleased += OnMouseReleased;
             _hook.KeyPressed += OnKeyPressed;
             _hook.KeyReleased += OnKeyReleased;
-        }        
+        }
+
         public void Start() => _hook.RunAsync();
-        public void Stop() => _hook.Dispose();        
+
+        public void Stop() => Dispose();
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _hook.Dispose();
+        }
+
         private void OnMousePressed(object? sender, MouseHookEventArgs e)
         {
             if (e.Data.Button == MouseButton.Button1)
@@ -30,12 +45,14 @@ using HoverDrop.App.Utils;namespace HoverDrop.App.Hooks
                 _cancelled = false;
                 CheckAndFireEvent();
             }
-        }        
+        }
+
         private void OnMouseReleased(object? sender, MouseHookEventArgs e)
         {
             if (e.Data.Button == MouseButton.Button1)
             {
-                _isLButtonDown = false;                // Не прячем сразу: окну нужно время, чтобы получить Drop.
+                _isLButtonDown = false;
+                // Не прячем сразу: окну нужно время, чтобы получить Drop.
                 // Если Drop прошёл, окно скроется само; это страховка на случай отмены (Esc и т.п.).
                 _ = Task.Delay(400).ContinueWith(_ =>
                     Application.Current.Dispatcher.Invoke(() =>
@@ -43,7 +60,8 @@ using HoverDrop.App.Utils;namespace HoverDrop.App.Hooks
                         if (!_isLButtonDown) HideOverlayRequested?.Invoke();
                     }));
             }
-        }        
+        }
+
         private void OnKeyPressed(object? sender, KeyboardHookEventArgs e)
         {
             if (e.Data.KeyCode == KeyCode.VcEscape)
@@ -66,7 +84,8 @@ using HoverDrop.App.Utils;namespace HoverDrop.App.Hooks
                     CheckAndFireEvent();
                 }
             }
-        }        
+        }
+
         private void OnKeyReleased(object? sender, KeyboardHookEventArgs e)
         {
             if (IsMatchingTriggerKey(e.Data.KeyCode))
@@ -78,7 +97,9 @@ using HoverDrop.App.Utils;namespace HoverDrop.App.Hooks
                     CheckAndFireEvent();
                 }
             }
-        }        // Вспомогательный метод перевода наших настроек в коды SharpHook
+        }
+
+        // Вспомогательный метод перевода наших настроек в коды SharpHook
         private bool IsMatchingTriggerKey(KeyCode code)
         {
             return AppSettings.TriggerKey switch
@@ -88,7 +109,8 @@ using HoverDrop.App.Utils;namespace HoverDrop.App.Hooks
                 TriggerModifier.Shift => code == KeyCode.VcLeftShift || code == KeyCode.VcRightShift,
                 _ => false
             };
-        }        
+        }
+
         private void CheckAndFireEvent()
         {
             if (_isLButtonDown && _isTriggerDown && !_cancelled)

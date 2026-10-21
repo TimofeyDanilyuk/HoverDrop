@@ -1,4 +1,4 @@
-п»їusing System;
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -29,10 +29,10 @@ namespace HoverDrop.App.Services
             {
                 try
                 {
-                    // --- РћР‘Р©РР• Р”Р•Р™РЎРўР’РРЇ (С„Р°Р№Р»С‹ Рё РїР°РїРєРё) ---
+                    // --- ОБЩИЕ ДЕЙСТВИЯ (файлы и папки) ---
                     switch (actionName)
                     {
-                        case "РЈРґР°Р»РёС‚СЊ":
+                        case "Удалить":
                             if (isDir)
                                 Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(path,
                                     Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
@@ -43,25 +43,34 @@ namespace HoverDrop.App.Services
                                     Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
                             return;
 
-                        case "РљРѕРїРёСЂРѕРІР°С‚СЊ РїСѓС‚СЊ":
+                        case "Копировать путь":
                             Application.Current.Dispatcher.Invoke(() => Clipboard.SetText(path));
                             return;
 
-                        case "РЎРґРµР»Р°С‚СЊ РєРѕРїРёСЋ":
+                        case "Сделать копию":
                             if (isDir) CopyDirectory(path, Path.Combine(parent, $"{name}_copy"));
                             else File.Copy(path, Path.Combine(parent, $"{name}_copy{ext}"), true);
                             return;
 
-                        case "РќР° СЂР°Р±РѕС‡РёР№ СЃС‚РѕР»":
+                        case "На рабочий стол":
                         {
                             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                             string target = Path.Combine(desktop, Path.GetFileName(path));
-                            if (isDir) Directory.Move(path, target);
+                            if (isDir)
+                            {
+                                try { Directory.Move(path, target); }
+                                catch (IOException)
+                                {
+                                    // Directory.Move не работает при перемещении между дисками: копируем и удаляем
+                                    CopyDirectory(path, target);
+                                    Directory.Delete(path, true);
+                                }
+                            }
                             else File.Move(path, target, true);
                             return;
                         }
 
-                        case "Р’ ZIP-Р°СЂС…РёРІ":
+                        case "В ZIP-архив":
                         {
                             string zipPath = Path.Combine(parent, $"{name}.zip");
                             if (File.Exists(zipPath)) File.Delete(zipPath);
@@ -77,11 +86,11 @@ namespace HoverDrop.App.Services
                             return;
                         }
 
-                        case "Р Р°СЃРїР°РєРѕРІР°С‚СЊ СЃСЋРґР°" when ext == ".zip":
+                        case "Распаковать сюда" when ext == ".zip":
                             ZipFile.ExtractToDirectory(path, parent, true);
                             return;
 
-                        case "Р Р°СЃРїР°РєРѕРІР°С‚СЊ РІ РїР°РїРєСѓ" when ext == ".zip":
+                        case "Распаковать в папку" when ext == ".zip":
                         {
                             string extractDir = Path.Combine(parent, name);
                             Directory.CreateDirectory(extractDir);
@@ -89,11 +98,11 @@ namespace HoverDrop.App.Services
                             return;
                         }
 
-                        case "Р Р°СЃРїР°РєРѕРІР°С‚СЊ СЃСЋРґР°" when ext == ".rar" || ext == ".7z":
+                        case "Распаковать сюда" when ext == ".rar" || ext == ".7z":
                             ExtractArchive(path, parent);
                             return;
 
-                        case "Р Р°СЃРїР°РєРѕРІР°С‚СЊ РІ РїР°РїРєСѓ" when ext == ".rar" || ext == ".7z":
+                        case "Распаковать в папку" when ext == ".rar" || ext == ".7z":
                         {
                             string extractDir = Path.Combine(parent, name);
                             Directory.CreateDirectory(extractDir);
@@ -102,35 +111,35 @@ namespace HoverDrop.App.Services
                         }
                     }
 
-                    // --- РР—РћР‘Р РђР–Р•РќРРЇ (Magick.NET) ---
+                    // --- ИЗОБРАЖЕНИЯ (Magick.NET) ---
                     if (new[] { ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff" }.Contains(ext))
                     {
                         using var image = new MagickImage(path);
                         switch (actionName)
                         {
-                            case "Р’ JPG":
+                            case "В JPG":
                                 image.Format = MagickFormat.Jpeg;
                                 image.Quality = 90;
                                 image.Write(OutPath(parent, name, ".jpg", path));
                                 break;
-                            case "Р’ PNG":
+                            case "В PNG":
                                 image.Format = MagickFormat.Png;
                                 image.Write(OutPath(parent, name, ".png", path));
                                 break;
-                            case "Р’ ICO":
+                            case "В ICO":
                                 image.Resize(new MagickGeometry(256, 256) { IgnoreAspectRatio = false });
                                 image.Format = MagickFormat.Ico;
                                 image.Write(OutPath(parent, name, ".ico", path));
                                 break;
-                            case "Р’ PDF":
+                            case "В PDF":
                                 image.Format = MagickFormat.Pdf;
                                 image.Write(OutPath(parent, name, ".pdf", path));
                                 break;
-                            case "Р Р°Р·РјС‹С‚СЊ":
+                            case "Размыть":
                                 image.Blur(0, 5);
                                 image.Write(Path.Combine(parent, $"{name}_blurred{ext}"));
                                 break;
-                            case "РћР±РµСЃС†РІРµС‚РёС‚СЊ":
+                            case "Обесцветить":
                                 image.Grayscale();
                                 image.Write(Path.Combine(parent, $"{name}_bw{ext}"));
                                 break;
@@ -138,29 +147,29 @@ namespace HoverDrop.App.Services
                         return;
                     }
 
-                    // --- Р’РР”Р•Рћ Р РђРЈР”РРћ (FFmpeg: СЂСЏРґРѕРј СЃ exe РёР»Рё РІ PATH) ---
+                    // --- ВИДЕО И АУДИО (FFmpeg: рядом с exe или в PATH) ---
                     if (new[] { ".mp4", ".mkv", ".avi", ".mov", ".webm", ".mp3", ".wav", ".flac", ".ogg" }.Contains(ext))
                     {
                         string input = $"\"{path}\"";
                         switch (actionName)
                         {
-                            case "Р’ MP3 (РђСѓРґРёРѕ)":
-                            case "Р’ MP3":
+                            case "В MP3 (Аудио)":
+                            case "В MP3":
                                 RunFfmpeg(toast, $"-i {input} -vn -q:a 0 \"{OutPath(parent, name, ".mp3", path)}\" -y");
                                 break;
-                            case "Р’ WAV":
+                            case "В WAV":
                                 RunFfmpeg(toast, $"-i {input} -vn \"{OutPath(parent, name, ".wav", path)}\" -y");
                                 break;
-                            case "Р’ GIF":
+                            case "В GIF":
                                 RunFfmpeg(toast, $"-i {input} -vf \"fps=10,scale=480:-1:flags=lanczos\" \"{OutPath(parent, name, ".gif", path)}\" -y");
                                 break;
-                            case "РЎР¶Р°С‚СЊ (720p)":
+                            case "Сжать (720p)":
                                 RunFfmpeg(toast, $"-i {input} -vf scale=-2:720 -c:v libx264 -crf 26 -c:a copy \"{Path.Combine(parent, $"{name}_720p.mp4")}\" -y");
                                 break;
-                            case "РЎР¶Р°С‚СЊ (64kbps)":
+                            case "Сжать (64kbps)":
                                 RunFfmpeg(toast, $"-i {input} -vn -b:a 64k \"{Path.Combine(parent, $"{name}_64k.mp3")}\" -y");
                                 break;
-                            case "РЈРґР°Р»РёС‚СЊ Р·РІСѓРє":
+                            case "Удалить звук":
                                 RunFfmpeg(toast, $"-i {input} -c copy -an \"{Path.Combine(parent, $"{name}_nosound{ext}")}\" -y");
                                 break;
                         }
@@ -170,7 +179,7 @@ namespace HoverDrop.App.Services
                 {
                     failed = true;
                     Application.Current.Dispatcher.Invoke(() =>
-                        MessageBox.Show($"РћС€РёР±РєР° РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ С„Р°Р№Р»Р°: {ex.Message}", "HoverDrop",
+                        MessageBox.Show($"Ошибка при обработке файла: {ex.Message}", "HoverDrop",
                             MessageBoxButton.OK, MessageBoxImage.Error));
                 }
             });
@@ -178,7 +187,7 @@ namespace HoverDrop.App.Services
             if (failed) toast.Fail(); else toast.Complete();
         }
 
-        // Р•СЃР»Рё РёС‚РѕРіРѕРІС‹Р№ РїСѓС‚СЊ СЃРѕРІРїР°Р» СЃ РёСЃС…РѕРґРЅС‹Рј С„Р°Р№Р»РѕРј, РґРѕР±Р°РІР»СЏРµРј СЃСѓС„С„РёРєСЃ, С‡С‚РѕР±С‹ РЅРµ Р·Р°С‚РµСЂРµС‚СЊ РѕСЂРёРіРёРЅР°Р»
+        // Если итоговый путь совпал с исходным файлом, добавляем суффикс, чтобы не затереть оригинал
         private static string OutPath(string dir, string name, string newExt, string original)
         {
             string result = Path.Combine(dir, name + newExt);
@@ -187,7 +196,7 @@ namespace HoverDrop.App.Services
             return result;
         }
 
-        // Р Р°СЃРїР°РєРѕРІРєР° .rar/.7z С‡РµСЂРµР· SharpCompress (СЃ Р·Р°С‰РёС‚РѕР№ РѕС‚ РІС‹С…РѕРґР° Р·Р° РїСЂРµРґРµР»С‹ РїР°РїРєРё)
+        // Распаковка .rar/.7z через SharpCompress (с защитой от выхода за пределы папки)
         private static void ExtractArchive(string archivePath, string targetDir)
         {
             string root = Path.GetFullPath(targetDir);
@@ -224,7 +233,7 @@ namespace HoverDrop.App.Services
 
         private static void RunFfmpeg(ToastHandle toast, string arguments)
         {
-            // РЎРЅР°С‡Р°Р»Р° РёС‰РµРј ffmpeg.exe СЂСЏРґРѕРј СЃ РїСЂРёР»РѕР¶РµРЅРёРµРј, РёРЅР°С‡Рµ Р±РµСЂС‘Рј РёР· PATH
+            // Сначала ищем ffmpeg.exe рядом с приложением, иначе берём из PATH
             string local = Path.Combine(AppContext.BaseDirectory, "ffmpeg.exe");
             var psi = new ProcessStartInfo
             {
@@ -241,7 +250,7 @@ namespace HoverDrop.App.Services
                 var tail = new StringBuilder();
                 double total = 0;
 
-                // ffmpeg РїРёС€РµС‚ РїСЂРѕРіСЂРµСЃСЃ РІ stderr, СЃС‚СЂРѕРєРё СЂР°Р·РґРµР»РµРЅС‹ \r: ReadLine СЌС‚Рѕ РїРѕРЅРёРјР°РµС‚
+                // ffmpeg пишет прогресс в stderr, строки разделены \r: ReadLine это понимает
                 string? line;
                 while ((line = process.StandardError.ReadLine()) != null)
                 {
@@ -264,22 +273,22 @@ namespace HoverDrop.App.Services
                 if (process.ExitCode != 0)
                 {
                     string err = tail.ToString();
-                    throw new InvalidOperationException("FFmpeg Р·Р°РІРµСЂС€РёР»СЃСЏ СЃ РѕС€РёР±РєРѕР№:\n" + err[^Math.Min(err.Length, 400)..]);
+                    throw new InvalidOperationException("FFmpeg завершился с ошибкой:\n" + err[^Math.Min(err.Length, 400)..]);
                 }
             }
             catch (Win32Exception)
             {
-                throw new InvalidOperationException("FFmpeg РЅРµ РЅР°Р№РґРµРЅ. РџРѕР»РѕР¶РёС‚Рµ ffmpeg.exe СЂСЏРґРѕРј СЃ РїСЂРёР»РѕР¶РµРЅРёРµРј РёР»Рё РґРѕР±Р°РІСЊС‚Рµ РµРіРѕ РІ PATH.");
+                throw new InvalidOperationException("FFmpeg не найден. Положите ffmpeg.exe рядом с приложением или добавьте его в PATH.");
             }
         }
 
-        // ---------- Р“Р РЈРџРџРћР’Р«Р• Р”Р•Р™РЎРўР’РРЇ ----------
+        // ---------- ГРУППОВЫЕ ДЕЙСТВИЯ ----------
 
         public static async Task ExecuteGroupActionAsync(string[] paths, string actionName)
         {
             string parent = Path.GetDirectoryName(paths[0].TrimEnd('\\', '/')) ?? "";
             var errors = new List<string>();
-            var toast = ToastService.Begin($"{actionName}: {paths.Length} С€С‚.");
+            var toast = ToastService.Begin($"{actionName}: {paths.Length} шт.");
             int done = 0;
 
             void ForEachSafe(Action<string> action)
@@ -298,9 +307,9 @@ namespace HoverDrop.App.Services
                 {
                     switch (actionName)
                     {
-                        case "Р’ ZIP-Р°СЂС…РёРІ":
+                        case "В ZIP-архив":
                         {
-                            string zipPath = UniquePath(Path.Combine(parent, $"РђСЂС…РёРІ_{DateTime.Now:yyyyMMdd_HHmmss}.zip"));
+                            string zipPath = UniquePath(Path.Combine(parent, $"Архив_{DateTime.Now:yyyyMMdd_HHmmss}.zip"));
                             using var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create);
                             var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                             ForEachSafe(p =>
@@ -312,27 +321,27 @@ namespace HoverDrop.App.Services
                             break;
                         }
 
-                        case "РЎРѕР±СЂР°С‚СЊ РІ РїР°РїРєСѓ":
+                        case "Собрать в папку":
                         {
-                            string folder = UniquePath(Path.Combine(parent, "РќРѕРІР°СЏ РїР°РїРєР°"));
+                            string folder = UniquePath(Path.Combine(parent, "Новая папка"));
                             Directory.CreateDirectory(folder);
                             ForEachSafe(p => MoveInto(p, folder));
                             break;
                         }
 
-                        case "РљРѕРїРёСЂРѕРІР°С‚СЊ РїСѓС‚Рё":
+                        case "Копировать пути":
                             Application.Current.Dispatcher.Invoke(() =>
                                 Clipboard.SetText(string.Join(Environment.NewLine, paths)));
                             break;
 
-                        case "РќР° СЂР°Р±РѕС‡РёР№ СЃС‚РѕР»":
+                        case "На рабочий стол":
                         {
                             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                             ForEachSafe(p => MoveInto(p, desktop));
                             break;
                         }
 
-                        case "РЈРґР°Р»РёС‚СЊ":
+                        case "Удалить":
                             ForEachSafe(p =>
                             {
                                 if (Directory.Exists(p))
@@ -346,14 +355,14 @@ namespace HoverDrop.App.Services
                             });
                             break;
 
-                        case "Р’ JPG":
-                        case "Р’ PNG":
+                        case "В JPG":
+                        case "В PNG":
                             ForEachSafe(p =>
                             {
                                 string dir = Path.GetDirectoryName(p) ?? "";
                                 string name = Path.GetFileNameWithoutExtension(p);
                                 using var image = new MagickImage(p);
-                                if (actionName == "Р’ JPG")
+                                if (actionName == "В JPG")
                                 {
                                     image.Format = MagickFormat.Jpeg;
                                     image.Quality = 90;
@@ -377,12 +386,12 @@ namespace HoverDrop.App.Services
             if (errors.Count > 0) toast.Fail(); else toast.Complete();
             if (errors.Count > 0)
             {
-                MessageBox.Show("РќРµ РІСЃС‘ СѓРґР°Р»РѕСЃСЊ РѕР±СЂР°Р±РѕС‚Р°С‚СЊ:\n\n" + string.Join("\n", errors.Take(8)),
+                MessageBox.Show("Не всё удалось обработать:\n\n" + string.Join("\n", errors.Take(8)),
                     "HoverDrop", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
-        // РџРµСЂРµРЅРѕСЃРёС‚ С„Р°Р№Р» РёР»Рё РїР°РїРєСѓ РІ РєР°С‚Р°Р»РѕРі, РЅРµ Р·Р°С‚РёСЂР°СЏ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РµРµ
+        // Переносит файл или папку в каталог, не затирая существующее
         private static void MoveInto(string source, string targetDir)
         {
             source = source.TrimEnd('\\', '/');
@@ -391,7 +400,7 @@ namespace HoverDrop.App.Services
             else File.Move(source, target);
         }
 
-        // Р•СЃР»Рё РїСѓС‚СЊ Р·Р°РЅСЏС‚, РґРѕР±Р°РІР»СЏРµС‚ " (2)", " (3)" Рё С‚.Рґ.
+        // Если путь занят, добавляет " (2)", " (3)" и т.д.
         private static string UniquePath(string path)
         {
             if (!File.Exists(path) && !Directory.Exists(path)) return path;
@@ -406,7 +415,7 @@ namespace HoverDrop.App.Services
             return candidate;
         }
 
-        // РЈРЅРёРєР°Р»СЊРЅРѕРµ РёРјСЏ Р·Р°РїРёСЃРё РІРЅСѓС‚СЂРё Р°СЂС…РёРІР°
+        // Уникальное имя записи внутри архива
         private static string UniqueName(string name, HashSet<string> used)
         {
             string candidate = name;

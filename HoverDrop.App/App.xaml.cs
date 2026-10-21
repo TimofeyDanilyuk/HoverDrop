@@ -1,4 +1,4 @@
-п»їusing System;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Windows;
@@ -23,13 +23,13 @@ namespace HoverDrop.App
         {
             base.OnStartup(e);
 
-            // РџСЂРёР»РѕР¶РµРЅРёРµ Р¶РёРІС‘С‚ РІ С„РѕРЅРµ Рё Р·Р°РєСЂС‹РІР°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ СЏРІРЅРѕ (РєРЅРѕРїРєР° В«Р’С‹Р№С‚РёВ»)
+            // Приложение живёт в фоне и закрывается только явно (кнопка «Выйти»)
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             _mutex = new Mutex(true, MutexName, out bool isFirstInstance);
             if (!isFirstInstance)
             {
-                // РЈР¶Рµ Р·Р°РїСѓС‰РµРЅРѕ: РїСЂРѕСЃРёРј СЂР°Р±РѕС‚Р°СЋС‰РёР№ СЌРєР·РµРјРїР»СЏСЂ РїРѕРєР°Р·Р°С‚СЊ РЅР°СЃС‚СЂРѕР№РєРё Рё РІС‹С…РѕРґРёРј
+                // Уже запущено: просим работающий экземпляр показать настройки и выходим
                 try { EventWaitHandle.OpenExisting(ShowSettingsEventName).Set(); } catch { }
                 Shutdown();
                 return;
@@ -44,10 +44,10 @@ namespace HoverDrop.App
             _inputHookService.HideOverlayRequested += OnHideOverlay;
             _inputHookService.Start();
 
-            // РћРєРЅРѕ РјРµРЅСЋ СЃРѕР·РґР°С‘Рј, РЅРѕ РЅРµ РїРѕРєР°Р·С‹РІР°РµРј
+            // Окно меню создаём, но не показываем
             MainWindow = new MainWindow();
 
-            // Р–РґС‘Рј СЃРёРіРЅР°Р»Р° РѕС‚ РїРѕРІС‚РѕСЂРЅРѕРіРѕ Р·Р°РїСѓСЃРєР°
+            // Ждём сигнала от повторного запуска
             var showSettingsEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSettingsEventName);
             var waiter = new Thread(() =>
             {
@@ -60,7 +60,7 @@ namespace HoverDrop.App
             { IsBackground = true };
             waiter.Start();
 
-            // РџСЂРё Р°РІС‚РѕР·Р°РїСѓСЃРєРµ РѕРєРЅРѕ РЅР°СЃС‚СЂРѕРµРє РЅРµ РїРѕРєР°Р·С‹РІР°РµРј
+            // При автозапуске окно настроек не показываем
             if (!e.Args.Contains("--autostart"))
                 ShowSettings();
         }
@@ -91,24 +91,24 @@ namespace HoverDrop.App
 
             var dpi = VisualTreeHelper.GetDpi(MainWindow);
 
-            // РЎРЅРёРјРѕРє Рё СЂР°Р·РјС‹С‚РёРµ С„РѕРЅР° РїРѕРґ РјРµРЅСЋ: СЃС‚СЂРѕРіРѕ Р”Рћ РїРѕРєР°Р·Р° РѕРєРЅР°
+            // Снимок и размытие фона под меню: строго ДО показа окна
             if (MainWindow.DataContext is OverlayViewModel vm)
             {
                 int sizePx = (int)Math.Round(MainWindow.Width * dpi.DpiScaleX);
                 vm.GlassImage = ScreenGlass.CaptureBlurred((int)cursorPosition.X, (int)cursorPosition.Y, sizePx);
             }
 
-            // cursorPosition РІ С„РёР·РёС‡РµСЃРєРёС… РїРёРєСЃРµР»СЏС…, Left/Top РѕРєРЅР° РІ DIP
+            // cursorPosition в физических пикселях, Left/Top окна в DIP
             MainWindow.Left = cursorPosition.X / dpi.DpiScaleX - MainWindow.Width / 2;
             MainWindow.Top = cursorPosition.Y / dpi.DpiScaleY - MainWindow.Height / 2;
 
             MainWindow.Show();
         }
 
-        // РџРµСЂРµСЃРѕР·РґР°С‘С‚ РѕРєРЅРѕ РѕРІРµСЂР»РµСЏ (РїРѕСЃР»Рµ СЃРјРµРЅС‹ С‚РµРјС‹ WPF-UI РїРѕСЂС‚РёС‚ С„РѕРЅ СЃС‚Р°СЂРѕРіРѕ РѕРєРЅР°)
+        // Пересоздаёт окно оверлея (после смены темы WPF-UI портит фон старого окна)
         public void RecreateOverlay()
         {
-            // РџСЂРё СЃС‚Р°СЂС‚Рµ РѕРєРЅР° РµС‰С‘ РЅРµС‚, РѕРЅРѕ СЃРѕР·РґР°С‘С‚СЃСЏ РІ OnStartup
+            // При старте окна ещё нет, оно создаётся в OnStartup
             if (MainWindow == null) return;
 
             var old = MainWindow;
@@ -118,6 +118,7 @@ namespace HoverDrop.App
 
         private void OnHideOverlay()
         {
+            if (MainWindow == null) return;
             MainWindow.Hide();
             (MainWindow.DataContext as OverlayViewModel)?.Reset();
         }

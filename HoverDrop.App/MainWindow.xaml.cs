@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Media;
 using HoverDrop.App.Utils;
@@ -58,13 +58,16 @@ namespace HoverDrop.App
                     // Дроп над центром или мимо кольца: отмена
                     if (actionTitle != null)
                     {
+                        // Подтверждение удаления ДО выполнения действия
+                        if (actionTitle == "Удалить" && AppSettings.ConfirmDelete && !ConfirmDelete(files))
+                            return;
+
                         if (files.Length == 1)
                             await Services.FileActionService.ExecuteActionAsync(files[0], actionTitle);
                         else
                             await Services.FileActionService.ExecuteGroupActionAsync(files, actionTitle);
 
                         if (AppSettings.PlaySound) System.Media.SystemSounds.Beep.Play();
-                        if (actionTitle == "Удалить" && AppSettings.ConfirmDelete && !ConfirmDelete(files)) return;
                     }
                     return;
                 }
