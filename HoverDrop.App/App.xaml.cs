@@ -111,26 +111,29 @@ namespace HoverDrop.App
 
         private void OnShowOverlay(Point cursorPosition)
         {
-            if (MainWindow.IsVisible) return;
-
-            double size = OverlayViewModel.Center * 2 * AppSettings.MenuScale;
-            MainWindow.Width = size;
-            MainWindow.Height = size;
-
-            var dpi = VisualTreeHelper.GetDpi(MainWindow);
-
-            // Снимок и размытие фона под меню: строго ДО показа окна
-            if (MainWindow.DataContext is OverlayViewModel vm)
+            Dispatcher.BeginInvoke(() =>
             {
-                int sizePx = (int)Math.Round(MainWindow.Width * dpi.DpiScaleX);
-                vm.GlassImage = ScreenGlass.CaptureBlurred((int)cursorPosition.X, (int)cursorPosition.Y, sizePx);
-            }
+                if (MainWindow == null || MainWindow.IsVisible) return;
 
-            // cursorPosition в физических пикселях, Left/Top окна в DIP
-            MainWindow.Left = cursorPosition.X / dpi.DpiScaleX - MainWindow.Width / 2;
-            MainWindow.Top = cursorPosition.Y / dpi.DpiScaleY - MainWindow.Height / 2;
+                double size = OverlayViewModel.Center * 2 * AppSettings.MenuScale;
+                MainWindow.Width = size;
+                MainWindow.Height = size;
 
-            MainWindow.Show();
+                var dpi = VisualTreeHelper.GetDpi(MainWindow);
+
+                // Снимок и размытие фона под меню: строго ДО показа окна
+                if (MainWindow.DataContext is OverlayViewModel vm)
+                {
+                    int sizePx = (int)Math.Round(MainWindow.Width * dpi.DpiScaleX);
+                    vm.GlassImage = ScreenGlass.CaptureBlurred((int)cursorPosition.X, (int)cursorPosition.Y, sizePx);
+                }
+
+                // cursorPosition в физических пикселях, Left/Top окна в DIP
+                MainWindow.Left = cursorPosition.X / dpi.DpiScaleX - MainWindow.Width / 2;
+                MainWindow.Top = cursorPosition.Y / dpi.DpiScaleY - MainWindow.Height / 2;
+
+                MainWindow.Show();
+            });
         }
 
         // Пересоздаёт окно оверлея (после смены темы WPF-UI портит фон старого окна)
@@ -145,10 +148,13 @@ namespace HoverDrop.App
 
         private void OnHideOverlay()
         {
-            if (MainWindow is MainWindow mw)
+            Dispatcher.BeginInvoke(() =>
             {
-                _ = mw.HideAnimatedAsync();
-            }
+                if (MainWindow is MainWindow mw && mw.IsVisible)
+                {
+                    _ = mw.HideAnimatedAsync();
+                }
+            });
         }
 
         protected override void OnExit(ExitEventArgs e)

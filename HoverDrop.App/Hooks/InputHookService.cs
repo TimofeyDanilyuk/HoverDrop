@@ -13,6 +13,7 @@ namespace HoverDrop.App.Hooks
         private volatile bool _isLButtonDown;
         private volatile bool _cancelled;
         private volatile bool _isTriggerDown;
+        private volatile bool _isOverlayShowing;
         private bool _disposed;
 
         public bool Paused { get; set; }
@@ -55,16 +56,19 @@ namespace HoverDrop.App.Hooks
             if (e.Data.Button == MouseButton.Button1)
             {
                 _isLButtonDown = false;
-                // Не прячем сразу: окну нужно время, чтобы получить Drop.
-                // Если Drop прошёл, окно скроется само; это страховка на случай отмены (Esc и т.п.).
-                _ = Task.Delay(400).ContinueWith(_ =>
+                if (_isOverlayShowing)
                 {
-                    var dispatcher = Application.Current?.Dispatcher;
-                    dispatcher?.BeginInvoke(() =>
+                    _isOverlayShowing = false;
+                    // Не прячем сразу: окну нужно время, чтобы получить Drop.
+                    // Если Drop прошёл, окно скроется само; это страховка на случай отмены (Esc и т.п.).
+                    _ = Task.Delay(400).ContinueWith(_ =>
                     {
-                        if (!_isLButtonDown) HideOverlayRequested?.Invoke();
+                        if (!_isLButtonDown)
+                        {
+                            HideOverlayRequested?.Invoke();
+                        }
                     });
-                });
+                }
             }
         }
 
@@ -76,7 +80,11 @@ namespace HoverDrop.App.Hooks
                 if (_isLButtonDown && _isTriggerDown)
                 {
                     _cancelled = true;
-                    HideOverlayRequested?.Invoke();
+                    if (_isOverlayShowing)
+                    {
+                        _isOverlayShowing = false;
+                        HideOverlayRequested?.Invoke();
+                    }
                 }
                 return;
             }
@@ -122,12 +130,20 @@ namespace HoverDrop.App.Hooks
 
             if (_isLButtonDown && _isTriggerDown && !_cancelled)
             {
-                Point pos = MouseHelper.GetCursorPosition();
-                ShowOverlayRequested?.Invoke(pos);
+                if (!_isOverlayShowing)
+                {
+                    _isOverlayShowing = true;
+                    Point pos = MouseHelper.GetCursorPosition();
+                    ShowOverlayRequested?.Invoke(pos);
+                }
             }
             else
             {
-                HideOverlayRequested?.Invoke();
+                if (_isOverlayShowing)
+                {
+                    _isOverlayShowing = false;
+                    HideOverlayRequested?.Invoke();
+                }
             }
         }
     }

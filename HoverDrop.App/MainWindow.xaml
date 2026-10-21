@@ -16,100 +16,21 @@
     </Window.Resources>
 
     <Viewbox Stretch="Uniform">
-        <Grid x:Name="RootRing" Width="400" Height="400" RenderTransformOrigin="0.5,0.5">
-            <Grid.RenderTransform>
-                <ScaleTransform ScaleX="1" ScaleY="1"/>
-            </Grid.RenderTransform>
-            <Grid.Style>
-                <Style TargetType="Grid">
-                    <Style.Triggers>
-                        <Trigger Property="IsVisible" Value="True">
-                            <Trigger.EnterActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18"/>
-                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         From="0.84" To="1" Duration="0:0:0.24">
-                                            <DoubleAnimation.EasingFunction>
-                                                <BackEase EasingMode="EaseOut" Amplitude="0.32"/>
-                                            </DoubleAnimation.EasingFunction>
-                                        </DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         From="0.84" To="1" Duration="0:0:0.24">
-                                            <DoubleAnimation.EasingFunction>
-                                                <BackEase EasingMode="EaseOut" Amplitude="0.32"/>
-                                            </DoubleAnimation.EasingFunction>
-                                        </DoubleAnimation>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </Trigger.EnterActions>
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </Grid.Style>
-
+        <Grid x:Name="RootRing" Width="400" Height="400">
             <!-- Сектора -->
-            <ItemsControl ItemsSource="{Binding Actions}">
+            <ItemsControl x:Name="SectorsControl" ItemsSource="{Binding Actions}">
                 <ItemsControl.Effect>
                     <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.32" Color="Black"/>
                 </ItemsControl.Effect>
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <Grid />
+                        <Grid Width="400" Height="400"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Grid RenderTransformOrigin="0.5,0.5">
-                            <Grid.RenderTransform>
-                                <ScaleTransform CenterX="200" CenterY="200" ScaleX="1" ScaleY="1"/>
-                            </Grid.RenderTransform>
-                            <Grid.Style>
-                                <Style TargetType="Grid">
-                                    <Setter Property="Panel.ZIndex" Value="0"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsHovered}" Value="True">
-                                            <Setter Property="Panel.ZIndex" Value="10"/>
-                                            <DataTrigger.EnterActions>
-                                                <BeginStoryboard>
-                                                    <Storyboard>
-                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                         To="1.05" Duration="0:0:0.14">
-                                                            <DoubleAnimation.EasingFunction>
-                                                                <CubicEase EasingMode="EaseOut"/>
-                                                            </DoubleAnimation.EasingFunction>
-                                                        </DoubleAnimation>
-                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                         To="1.05" Duration="0:0:0.14">
-                                                            <DoubleAnimation.EasingFunction>
-                                                                <CubicEase EasingMode="EaseOut"/>
-                                                            </DoubleAnimation.EasingFunction>
-                                                        </DoubleAnimation>
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </DataTrigger.EnterActions>
-                                            <DataTrigger.ExitActions>
-                                                <BeginStoryboard>
-                                                    <Storyboard>
-                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                         To="1.0" Duration="0:0:0.12">
-                                                            <DoubleAnimation.EasingFunction>
-                                                                <CubicEase EasingMode="EaseOut"/>
-                                                            </DoubleAnimation.EasingFunction>
-                                                        </DoubleAnimation>
-                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                         To="1.0" Duration="0:0:0.12">
-                                                            <DoubleAnimation.EasingFunction>
-                                                                <CubicEase EasingMode="EaseOut"/>
-                                                            </DoubleAnimation.EasingFunction>
-                                                        </DoubleAnimation>
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </DataTrigger.ExitActions>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Grid.Style>
+                        <Grid Loaded="SectorGrid_Loaded" Unloaded="SectorGrid_Unloaded"
+                              Width="400" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center">
 
                             <!-- Слой 1: размытый фон («стекло») -->
                             <Path Data="{Binding Shape}" RenderOptions.BitmapScalingMode="HighQuality">
@@ -119,7 +40,7 @@
                                 </Path.Fill>
                             </Path>
 
-                            <!-- Слой 2: тонировка (плавное изменение при наведении, у «Удалить» красная) -->
+                            <!-- Слой 2: тонировка -->
                             <Path Data="{Binding Shape}">
                                 <Path.Style>
                                     <Style TargetType="Path">
@@ -143,7 +64,7 @@
                                 </Path.Style>
                             </Path>
 
-                            <!-- Слой 3: тонкая кромка (при наведении акцентная и толще) -->
+                            <!-- Слой 3: тонкая кромка -->
                             <Path Data="{Binding Shape}" IsHitTestVisible="False">
                                 <Path.Style>
                                     <Style TargetType="Path">
@@ -160,6 +81,7 @@
                                                     <Condition Binding="{Binding IsHovered}" Value="True"/>
                                                 </MultiDataTrigger.Conditions>
                                                 <Setter Property="Stroke" Value="#FFFF6B6B"/>
+                                                <Setter Property="StrokeThickness" Value="2"/>
                                             </MultiDataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -187,7 +109,7 @@
             </ItemsControl>
 
             <!-- Центр: иконка файла + счётчик / выбранное действие -->
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False" Margin="0,0,0,4">
+            <StackPanel x:Name="CenterHub" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False" Margin="0,0,0,4">
                 <Grid HorizontalAlignment="Center">
                     <ui:SymbolIcon Symbol="{Binding FileIcon}" FontSize="56" Foreground="White" HorizontalAlignment="Center"
                                 Visibility="{Binding HasNoFileImage, Converter={StaticResource BoolToVis}}">
