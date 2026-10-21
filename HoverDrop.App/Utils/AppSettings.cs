@@ -18,6 +18,7 @@ namespace HoverDrop.App.Utils
         public static bool PlaySound { get; set; } = true;
         public static double MenuScale { get; set; } = 1.0;
         public static bool ConfirmDelete { get; set; } = true;
+        public static bool AutoUpdate { get; set; } = true;
 
         private static readonly string FilePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HoverDrop", "settings.json");
@@ -36,6 +37,7 @@ namespace HoverDrop.App.Utils
             public bool StartWithWindows { get; set; }
             public bool PlaySound { get; set; } = true;
             public double MenuScale { get; set; } = 1.0;
+            public bool AutoUpdate { get; set; } = true;
         }
 
         public static void Load()
@@ -52,6 +54,7 @@ namespace HoverDrop.App.Utils
                 PlaySound = data.PlaySound;
                 MenuScale = Math.Clamp(data.MenuScale, 0.7, 1.5);
                 ConfirmDelete = data.ConfirmDelete;
+                AutoUpdate = data.AutoUpdate;
             }
             catch
             {
@@ -71,7 +74,8 @@ namespace HoverDrop.App.Utils
                     StartWithWindows = StartWithWindows,
                     PlaySound = PlaySound,
                     ConfirmDelete = ConfirmDelete,
-                    MenuScale = MenuScale
+                    MenuScale = MenuScale,
+                    AutoUpdate = AutoUpdate
                 };
                 File.WriteAllText(FilePath, JsonSerializer.Serialize(data, Options));
             }

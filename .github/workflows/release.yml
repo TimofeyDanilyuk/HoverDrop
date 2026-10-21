@@ -39,18 +39,28 @@ jobs:
           $exe = Get-ChildItem ffmpeg -Recurse -Filter ffmpeg.exe | Select-Object -First 1
           Copy-Item $exe.FullName publish\ffmpeg.exe
 
-      - name: Установщик (Inno Setup)
+      - name: Установить vpk (версия как у пакета Velopack в проекте)
         shell: pwsh
         run: |
-          choco install innosetup -y --no-progress
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=${{ steps.ver.outputs.version }}" installer\HoverDrop.iss
+          $proj = [xml](Get-Content $env:PROJECT)
+          $ref = $proj.Project.ItemGroup.PackageReference | Where-Object { $_.Include -eq 'Velopack' }
+          dotnet tool install -g vpk --version $ref.Version
 
-      - name: Portable zip
+      - name: Скачать прошлые релизы (для дельта-обновлений)
         shell: pwsh
-        run: Compress-Archive -Path publish\* -DestinationPath "dist\HoverDrop-portable-${{ steps.ver.outputs.version }}.zip"
+        continue-on-error: true   # у самого первого релиза скачивать нечего
+        run: vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Релиз на GitHub
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*
-          generate_release_notes: true
+      - name: Упаковать
+        shell: pwsh
+        run: >
+          vpk pack --packId HoverDrop --packTitle HoverDrop --packAuthors TimofeyDanilyuk
+          --packVersion ${{ steps.ver.outputs.version }} --packDir publish --mainExe HoverDrop.App.exe
+          --icon HoverDrop.App/Assets/HoverDrop.ico --splashImage installer/splash.png
+
+      - name: Выложить в GitHub Releases
+        shell: pwsh
+        run: >
+          vpk upload github --repoUrl https://github.com/${{ github.repository }}
+          --publish --releaseName "HoverDrop ${{ steps.ver.outputs.version }}"
+          --tag ${{ github.ref_name }} --token ${{ secrets.GITHUB_TOKEN }}

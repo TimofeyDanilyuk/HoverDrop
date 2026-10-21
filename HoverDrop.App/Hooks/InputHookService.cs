@@ -13,6 +13,7 @@ namespace HoverDrop.App.Hooks
         private volatile bool _cancelled;
         private volatile bool _isTriggerDown;
         private bool _disposed;
+        public bool Paused { get; set; }
 
         public event Action<Point>? ShowOverlayRequested;
         public event Action? HideOverlayRequested;
@@ -113,7 +114,7 @@ namespace HoverDrop.App.Hooks
 
         private void CheckAndFireEvent()
         {
-            if (_isLButtonDown && _isTriggerDown && !_cancelled)
+            if (_isLButtonDown && _isTriggerDown && !_cancelled && !Paused)
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {

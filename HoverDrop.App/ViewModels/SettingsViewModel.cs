@@ -16,6 +16,11 @@ namespace HoverDrop.App.ViewModels
         [ObservableProperty] private bool _playSound;
         [ObservableProperty] private bool _confirmDelete;
         [ObservableProperty] private double _menuScalePercent;
+        [ObservableProperty] private bool _autoUpdate;
+        [ObservableProperty] private string _updateStatus = "";
+        [ObservableProperty] private string _updateButtonText = "Проверить";
+
+        public string VersionText => $"Версия {UpdateService.Instance.CurrentVersion}";
 
         public SettingsViewModel()
         {
@@ -26,6 +31,44 @@ namespace HoverDrop.App.ViewModels
             _playSound = AppSettings.PlaySound;
             _confirmDelete = AppSettings.ConfirmDelete;
             _menuScalePercent = AppSettings.MenuScale * 100;
+
+            _autoUpdate = AppSettings.AutoUpdate;
+            if (UpdateService.Instance.ReadyVersion is { } ready)
+            {
+                _updateStatus = $"Доступна версия {ready}";
+                _updateButtonText = "Установить и перезапустить";
+            }
+        }
+
+        partial void OnAutoUpdateChanged(bool value)
+        {
+            AppSettings.AutoUpdate = value;
+            AppSettings.Save();
+        }
+
+        [RelayCommand]
+        private async Task CheckUpdates()
+        {
+            var svc = UpdateService.Instance;
+            if (svc.ReadyVersion != null) { svc.InstallAndRestart(); return; }
+
+            UpdateStatus = "Проверяю…";
+            switch (await svc.CheckAsync())
+            {
+                case UpdateCheckResult.Ready:
+                    UpdateStatus = $"Доступна версия {svc.ReadyVersion}";
+                    UpdateButtonText = "Установить и перезапустить";
+                    break;
+                case UpdateCheckResult.UpToDate:
+                    UpdateStatus = "У вас последняя версия";
+                    break;
+                case UpdateCheckResult.NotInstalled:
+                    UpdateStatus = "Обновления работают только в установленной версии";
+                    break;
+                default:
+                    UpdateStatus = "Не удалось проверить обновления";
+                    break;
+            }
         }
 
         partial void OnMenuScalePercentChanged(double value)

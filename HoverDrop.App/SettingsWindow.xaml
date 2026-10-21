@@ -6,6 +6,7 @@
         Title="Настройки HoverDrop" Height="560" Width="480"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
+        Icon="pack://application:,,,/Assets/HoverDrop.ico"
         WindowBackdropType="Mica">
 
     <ui:FluentWindow.DataContext>
@@ -38,7 +39,11 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="HoverDrop"/>
+        <ui:TitleBar Grid.Row="0" Title="HoverDrop">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/Assets/HoverDrop.ico"/>
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
 
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Grid.Row="1" Margin="24,8,24,24">
@@ -148,6 +153,43 @@
                     </Grid>
                 </Border>
 
+                <!-- Обновления -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Grid.Column="0" Symbol="ArrowSync24" FontSize="22" Margin="0,0,14,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="Обновления" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="{Binding VersionText}" Style="{StaticResource CardHint}"/>
+                            <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource CardHint}"/>
+                        </StackPanel>
+                        <Button Grid.Column="2" VerticalAlignment="Center"
+                                Content="{Binding UpdateButtonText}" Command="{Binding CheckUpdatesCommand}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Автопроверка -->
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Grid.Column="0" Symbol="CloudArrowDown24" FontSize="22" Margin="0,0,14,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="Проверять обновления автоматически" Style="{StaticResource CardTitle}"/>
+                            <TextBlock Text="Обновление скачивается само, а установить его вы решаете сами" Style="{StaticResource CardHint}"/>
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
+                                        IsChecked="{Binding AutoUpdate, Mode=TwoWay}"/>
+                    </Grid>
+                </Border>
+
                 <!-- Подтверждение удаления -->
                 <Border Style="{StaticResource Card}">
                     <Grid>
@@ -167,7 +209,7 @@
                 </Border>
 
                 <TextBlock Margin="2,8,2,0" Style="{StaticResource CardHint}"
-                        Text="Закрытие этого окна не останавливает HoverDrop: он продолжает работать в фоне. Чтобы открыть настройки снова, запусти HoverDrop.exe ещё раз."/>
+                        Text="Закрытие этого окна не останавливает HoverDrop: он продолжает работать в фоне. Настройки можно открыть из значка в системном трее."/>
 
                 <Button Content="Выйти из HoverDrop" Command="{Binding ExitCommand}"
                         HorizontalAlignment="Left" Margin="0,16,0,0"/>

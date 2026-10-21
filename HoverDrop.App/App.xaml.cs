@@ -4,6 +4,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 using HoverDrop.App.Hooks;
+using Velopack;
 using HoverDrop.App.Services;
 using HoverDrop.App.Utils;
 using HoverDrop.App.ViewModels;
@@ -18,18 +19,30 @@ namespace HoverDrop.App
         private Mutex? _mutex;
         private InputHookService? _inputHookService;
         private SettingsWindow? _settingsWindow;
+        private TrayService? _tray;
+
+        [STAThread]
+        private static void Main(string[] args)
+        {
+            // Velopack РѕР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РІС‹Р·РѕРІС‹ СѓСЃС‚Р°РЅРѕРІС‰РёРєР°/РѕР±РЅРѕРІР»РµРЅРёСЏ Рё РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё Р·Р°РІРµСЂС€Р°РµС‚ РїСЂРѕС†РµСЃСЃ
+            VelopackApp.Build().Run();
+
+            var app = new App();
+            app.InitializeComponent();
+            app.Run();
+        }
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
-            // Приложение живёт в фоне и закрывается только явно (кнопка «Выйти»)
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ)
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             _mutex = new Mutex(true, MutexName, out bool isFirstInstance);
             if (!isFirstInstance)
             {
-                // Уже запущено: просим работающий экземпляр показать настройки и выходим
+                // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                 try { EventWaitHandle.OpenExisting(ShowSettingsEventName).Set(); } catch { }
                 Shutdown();
                 return;
@@ -43,11 +56,20 @@ namespace HoverDrop.App
             _inputHookService.ShowOverlayRequested += OnShowOverlay;
             _inputHookService.HideOverlayRequested += OnHideOverlay;
             _inputHookService.Start();
+            var hook = _inputHookService;
+            _tray = new TrayService();
+            _tray.OpenSettingsRequested += ShowSettings;
+            _tray.PausedChanged += paused => hook.Paused = paused;
+            _tray.ExitRequested += Shutdown;
+            _tray.CheckUpdatesRequested += CheckUpdatesManually;
+            _tray.InstallUpdateRequested += UpdateService.Instance.InstallAndRestart;
+            UpdateService.Instance.UpdateReady += v => Dispatcher.BeginInvoke(() => _tray?.SetUpdateReady(v));
+            _ = AutoUpdateLoopAsync();
 
-            // Окно меню создаём, но не показываем
+            // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             MainWindow = new MainWindow();
 
-            // Ждём сигнала от повторного запуска
+            // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             var showSettingsEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSettingsEventName);
             var waiter = new Thread(() =>
             {
@@ -60,7 +82,7 @@ namespace HoverDrop.App
             { IsBackground = true };
             waiter.Start();
 
-            // При автозапуске окно настроек не показываем
+            // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             if (!e.Args.Contains("--autostart"))
                 ShowSettings();
         }
@@ -91,24 +113,24 @@ namespace HoverDrop.App
 
             var dpi = VisualTreeHelper.GetDpi(MainWindow);
 
-            // Снимок и размытие фона под меню: строго ДО показа окна
+            // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
             if (MainWindow.DataContext is OverlayViewModel vm)
             {
                 int sizePx = (int)Math.Round(MainWindow.Width * dpi.DpiScaleX);
                 vm.GlassImage = ScreenGlass.CaptureBlurred((int)cursorPosition.X, (int)cursorPosition.Y, sizePx);
             }
 
-            // cursorPosition в физических пикселях, Left/Top окна в DIP
+            // cursorPosition пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, Left/Top пїЅпїЅпїЅпїЅ пїЅ DIP
             MainWindow.Left = cursorPosition.X / dpi.DpiScaleX - MainWindow.Width / 2;
             MainWindow.Top = cursorPosition.Y / dpi.DpiScaleY - MainWindow.Height / 2;
 
             MainWindow.Show();
         }
 
-        // Пересоздаёт окно оверлея (после смены темы WPF-UI портит фон старого окна)
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ WPF-UI пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ)
         public void RecreateOverlay()
         {
-            // При старте окна ещё нет, оно создаётся в OnStartup
+            // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ OnStartup
             if (MainWindow == null) return;
 
             var old = MainWindow;
@@ -125,8 +147,33 @@ namespace HoverDrop.App
 
         protected override void OnExit(ExitEventArgs e)
         {
+            _tray?.Dispose();
             _inputHookService?.Stop();
             base.OnExit(e);
+        }
+
+        // РџСЂРѕРІРµСЂРєР° С‡РµСЂРµР· 20 СЃ РїРѕСЃР»Рµ СЃС‚Р°СЂС‚Р°, РїРѕС‚РѕРј СЂР°Р· РІ 6 С‡Р°СЃРѕРІ, РїРѕРєР° РѕР±РЅРѕРІР»РµРЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ
+        private async Task AutoUpdateLoopAsync()
+        {
+            await Task.Delay(TimeSpan.FromSeconds(20));
+            while (UpdateService.Instance.ReadyVersion == null)
+            {
+                if (AppSettings.AutoUpdate) await UpdateService.Instance.CheckAsync();
+                await Task.Delay(TimeSpan.FromHours(6));
+            }
+        }
+
+        private async void CheckUpdatesManually()
+        {
+            var result = await UpdateService.Instance.CheckAsync();
+            string? text = result switch
+            {
+                UpdateCheckResult.UpToDate => "РЈ РІР°СЃ РїРѕСЃР»РµРґРЅСЏСЏ РІРµСЂСЃРёСЏ",
+                UpdateCheckResult.NotInstalled => "РћР±РЅРѕРІР»РµРЅРёСЏ СЂР°Р±РѕС‚Р°СЋС‚ С‚РѕР»СЊРєРѕ РІ СѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕР№ РІРµСЂСЃРёРё",
+                UpdateCheckResult.Error => "РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕРІРµСЂРёС‚СЊ РѕР±РЅРѕРІР»РµРЅРёСЏ",
+                _ => null // Ready: СѓРІРµРґРѕРјР»РµРЅРёРµ РїРѕРєР°Р¶РµС‚ СЃР°Рј С‚СЂРµР№
+            };
+            if (text != null) _tray?.ShowInfo(text);
         }
     }
 }
