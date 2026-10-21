@@ -1,4 +1,4 @@
-using System;
+﻿﻿using System;
 using System.Linq;
 using System.Threading;
 using System.Windows;
@@ -40,13 +40,13 @@ namespace HoverDrop.App
             AppDomain.CurrentDomain.UnhandledException += (_, ev) => Log.Write("Fatal: " + ev.ExceptionObject);
             Log.Write($"Start v{UpdateService.Instance.CurrentVersion}, args: {string.Join(' ', e.Args)}");
 
-            // ���������� ���� � ���� � ����������� ������ ���� (������ ������)
+            // Приложение живёт в фоне и закрывается только явно (кнопка «Выйти»)
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             _mutex = new Mutex(true, MutexName, out bool isFirstInstance);
             if (!isFirstInstance)
             {
-                // ��� ��������: ������ ���������� ��������� �������� ��������� � �������
+                // Уже запущено: просим работающий экземпляр показать настройки и выходим
                 try { EventWaitHandle.OpenExisting(ShowSettingsEventName).Set(); } catch { }
                 Shutdown();
                 return;
@@ -70,10 +70,10 @@ namespace HoverDrop.App
             UpdateService.Instance.UpdateReady += v => Dispatcher.BeginInvoke(() => _tray?.SetUpdateReady(v));
             _ = AutoUpdateLoopAsync();
 
-            // ���� ���� ������, �� �� ����������
+            // Окно меню создаём, но не показываем
             MainWindow = new MainWindow();
 
-            // ��� ������� �� ���������� �������
+            // Ждём сигнала от повторного запуска
             var showSettingsEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSettingsEventName);
             var waiter = new Thread(() =>
             {
@@ -86,7 +86,7 @@ namespace HoverDrop.App
             { IsBackground = true };
             waiter.Start();
 
-            // ��� ����������� ���� �������� �� ����������
+            // При автозапуске окно настроек не показываем
             if (!e.Args.Contains("--autostart"))
                 ShowSettings();
         }
@@ -118,24 +118,24 @@ namespace HoverDrop.App
 
             var dpi = VisualTreeHelper.GetDpi(MainWindow);
 
-            // ������ � �������� ���� ��� ����: ������ �� ������ ����
+            // Снимок и размытие фона под меню: строго ДО показа окна
             if (MainWindow.DataContext is OverlayViewModel vm)
             {
                 int sizePx = (int)Math.Round(MainWindow.Width * dpi.DpiScaleX);
                 vm.GlassImage = ScreenGlass.CaptureBlurred((int)cursorPosition.X, (int)cursorPosition.Y, sizePx);
             }
 
-            // cursorPosition � ���������� ��������, Left/Top ���� � DIP
+            // cursorPosition в физических пикселях, Left/Top окна в DIP
             MainWindow.Left = cursorPosition.X / dpi.DpiScaleX - MainWindow.Width / 2;
             MainWindow.Top = cursorPosition.Y / dpi.DpiScaleY - MainWindow.Height / 2;
 
             MainWindow.Show();
         }
 
-        // ���������� ���� ������� (����� ����� ���� WPF-UI ������ ��� ������� ����)
+        // Пересоздаёт окно оверлея (после смены темы WPF-UI портит фон старого окна)
         public void RecreateOverlay()
         {
-            // ��� ������ ���� ��� ���, ��� �������� � OnStartup
+            // При старте окна ещё нет, оно создаётся в OnStartup
             if (MainWindow == null) return;
 
             var old = MainWindow;
