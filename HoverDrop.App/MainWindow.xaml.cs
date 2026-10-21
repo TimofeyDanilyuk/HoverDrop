@@ -20,6 +20,7 @@ namespace HoverDrop.App
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                Log.Write($"DragEnter: {files?.Length} files");
                 if (files != null && files.Length > 0) ViewModel.LoadActionsForFiles(files);
                 e.Effects = PickEffect(e.AllowedEffects);
             }
@@ -49,6 +50,7 @@ namespace HoverDrop.App
                     // Пересчитываем наведение прямо в момент дропа
                     UpdateHoverFromCursor();
                     string? actionTitle = ViewModel.GetHoveredAction()?.Title;
+                    Log.Write($"Drop: action='{actionTitle}', files={files.Length}");
 
                     System.Diagnostics.Debug.WriteLine($"[HoverDrop] Drop: '{actionTitle}' -> {files.Length} шт., первый: {files[0]}");
 

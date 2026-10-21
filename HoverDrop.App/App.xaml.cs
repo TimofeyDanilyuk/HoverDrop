@@ -36,6 +36,10 @@ namespace HoverDrop.App
         {
             base.OnStartup(e);
 
+            DispatcherUnhandledException += (_, ev) => Log.Write("UI exception: " + ev.Exception);
+            AppDomain.CurrentDomain.UnhandledException += (_, ev) => Log.Write("Fatal: " + ev.ExceptionObject);
+            Log.Write($"Start v{UpdateService.Instance.CurrentVersion}, args: {string.Join(' ', e.Args)}");
+
             // ���������� ���� � ���� � ����������� ������ ���� (������ ������)
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
@@ -105,6 +109,7 @@ namespace HoverDrop.App
 
         private void OnShowOverlay(Point cursorPosition)
         {
+            Log.Write("ShowOverlay");
             if (MainWindow.IsVisible) return;
 
             double size = OverlayViewModel.Center * 2 * AppSettings.MenuScale;
